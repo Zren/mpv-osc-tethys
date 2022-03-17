@@ -1844,29 +1844,26 @@ layouts["tethys"] = function()
     new_element("bgbox", "box")
     lo = add_layout("bgbox")
 
-    lo.geometry = osc_geo
+    local boxBlur = 20 -- 0 .. 20
+    geo = {
+        x = osc_geo.x - boxBlur,
+        y = osc_geo.y - boxBlur,
+        an = osc_geo.an,
+        w = osc_geo.w + boxBlur*2,
+        h = osc_geo.h + boxBlur*2,
+    }
+    lo.geometry = geo
     lo.layer = 10
-    -- lo.style = "{\\rDefault\\blur0\\bord1\\1c&H000000\\3c&HFFFFFF}"
-    
-    local box_blur = 15 -- 0 .. 20
-    local box_bord = 10
-    lo.style = ("{\\rDefault\\blur(%d)\\border-width(%d)\\1c&H000000\\3c&HFFFFFF}"):format(box_blur, box_bord)
+    lo.style = ("{\\rDefault\\blur(%d)\\bord0\\1c&H000000\\3c&HFFFFFF}"):format(boxBlur)
     lo.alpha[1] = 80 --- 0 (opaque) to 255 (fully transparent)
 
-
-    -- lo.style = osc_styles.smallButtonsBar
-    -- bigButtons = "{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs50\\fnmpv-osd-symbols}",
-    -- smallButtonsBar = "{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs28\\fnmpv-osd-symbols}",
-    -- lo.style = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs%d\\a(9)\\fnmpv-osd-symbols}"):format(buttonH)
-    -- local osdSymbolFont = "mpv-osd-symbols"
-    -- local osdSymbolFont = "mpv-osd-symbols-tethys"
-    local osdSymbolFont = "tethys-osd-symbols"
-    -- local osdSymbolFont = "/home/chris/Downloads/mpv/mpv-osd-symbols-Regular.otf"
+    local buttonTooltipSize = 24
+    local osdSymbolFont = "mpv-osd-symbols" -- Seems to be hardcoded
     local buttonStyle = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(buttonH, osdSymbolFont)
     local smallButtonStyle = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(smallButtonSize, osdSymbolFont)
-    -- local buttonStyle = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs%d\\fnmpv-osd-symbols}"):format(buttonH)
-    -- local smallButtonStyle = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs%d\\fnmpv-osd-symbols}"):format(smallButtonSize)
-    local buttonTooltipStyle = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(24)
+    local buttonTooltipStyle = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(buttonTooltipSize)
+    local timecodeSize = 27
+    local timecodeStyle = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(timecodeSize)
 
     function setButtonTooltip(button_lo, text)
         button_lo.button.tooltip = text
@@ -2108,7 +2105,7 @@ layouts["tethys"] = function()
     lo = add_layout("tc_both")
     lo.geometry = geo
     -- lo.style = osc_styles.timecodesBar
-    lo.style = "{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs27}"
+    lo.style = timecodeStyle
 
 
     -- Seekbar
@@ -2121,18 +2118,6 @@ layouts["tethys"] = function()
         w = osc_geo.w,
         h = seekbarHeight,
     }
-    new_element("bgbar1", "box")
-    lo = add_layout("bgbar1")
-
-    lo.geometry = geo
-    lo.layer = 15
-    lo.style = osc_styles.timecodesBar
-    lo.alpha[1] =
-        math.min(255, user_opts.boxalpha + (255 - user_opts.boxalpha)*0.8)
-    if not (user_opts["seekbarstyle"] == "bar") then
-        lo.box.radius = geo.h / 2
-        lo.box.hexagon = user_opts["seekbarstyle"] == "diamond"
-    end
 
     lo = add_layout("seekbar")
     lo.geometry = geo
