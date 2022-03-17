@@ -95,6 +95,35 @@ local osc_styles = {
     wcBar = "{\\1c&H000000}",
 }
 
+
+local tethys = {
+    seekbarHeight = 20,
+    controlsHeight = 64,
+    buttonTooltipSize = 24,
+    cacheTextSize = 20,
+    timecodeSize = 27,
+    seekbarTimestampSize = 30,
+    osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
+
+    -- Colors (uses GGBBRR for some reason)
+    seekbarFgColor = "483DD7", -- #d73d48
+    seekbarBgColor = "929292",
+    chapterTickColor = "CCCCCC",
+}
+tethys.buttonW = tethys.controlsHeight
+tethys.buttonH = tethys.controlsHeight
+tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
+
+local tethysStyle = {
+    button = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonH, tethys.osdSymbolFont),
+    smallButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.smallButtonSize, tethys.osdSymbolFont),
+    buttonTooltip = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(tethys.buttonTooltipSize),
+    timecode = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.timecodeSize),
+    cacheText = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.cacheTextSize, tethys.osdSymbolFont),
+    seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
+    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.seekbarTimestampSize),
+}
+
 -- internal states, do not touch
 local state = {
     showtime,                               -- time of last invocation (last mouse move)
@@ -1769,21 +1798,22 @@ end
 
 layouts["tethys"] = function()
     local direction = -1
-    local seekbarHeight = 20
-    local controlsHeight = 64
     local osc_geo = {
         x = -2,
         y,
         an = (direction < 0) and 7 or 1,
         w,
-        h = seekbarHeight + controlsHeight,
+        h = tethys.seekbarHeight + tethys.controlsHeight,
     }
 
+    -- Alias
+    local buttonW = tethys.buttonW
+    local buttonH = tethys.buttonH
+    local smallButtonSize = tethys.smallButtonSize
+
+    -- Props
     local padX = 9
     local padY = 3
-    local buttonW = controlsHeight
-    local buttonH = controlsHeight
-    local smallButtonSize = buttonW * 2/3
     local tcW = (state.tc_ms) and 170 or 110
     local tsW = 90
     local minW = (buttonW + padX)*5 + (tcW + padX)*4 + (tsW + padX)*2
@@ -1816,8 +1846,8 @@ layouts["tethys"] = function()
 
     -- local line1 = osc_geo.y - direction * (9 + padY)
     -- local line2 = osc_geo.y - direction * (36 + padY)
-    local line1Y = osc_geo.y - direction * seekbarHeight
-    local line2Y = osc_geo.y - direction * controlsHeight
+    local line1Y = osc_geo.y - direction * tethys.seekbarHeight
+    local line2Y = osc_geo.y - direction * tethys.controlsHeight
     local leftPad = padX + padwc_l
     local rightPad = padX + padwc_r
     local leftX = osc_geo.x + leftPad
@@ -1864,17 +1894,9 @@ layouts["tethys"] = function()
     lo.style = ("{\\rDefault\\blur(%d)\\bord0\\1c&H000000\\3c&HFFFFFF}"):format(boxBlur)
     lo.alpha[1] = 80 --- 0 (opaque) to 255 (fully transparent)
 
-    local buttonTooltipSize = 24
-    local osdSymbolFont = "mpv-osd-symbols" -- Seems to be hardcoded
-    local buttonStyle = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(buttonH, osdSymbolFont)
-    local smallButtonStyle = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(smallButtonSize, osdSymbolFont)
-    local buttonTooltipStyle = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(buttonTooltipSize)
-    local timecodeSize = 27
-    local timecodeStyle = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(timecodeSize)
-
     function setButtonTooltip(button_lo, text)
         button_lo.button.tooltip = text
-        button_lo.button.tooltip_style = buttonTooltipStyle
+        button_lo.button.tooltip_style = tethysStyle.buttonTooltip
         local hw = button_lo.geometry.w/2
         local ty = osc_geo.y + padY * direction
         local an
@@ -1905,8 +1927,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("playpause")
     lo.geometry = geo
-    -- lo.style = buttonStyle .. "\238\132\129"
-    lo.style = buttonStyle
+    lo.style = tethysStyle.button
     setButtonTooltip(lo, "Play (p / Space)")
     leftSectionWidth = leftSectionWidth + geo.w
 
@@ -1920,7 +1941,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("skipback")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Back 10s (LeftArrow)")
     leftSectionWidth = leftSectionWidth + geo.w
 
@@ -1934,7 +1955,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("skipfrwd")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Forward 10s (RightArrow)")
     leftSectionWidth = leftSectionWidth + geo.w
 
@@ -1948,7 +1969,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("ch_prev")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Prev Chapter (PgDn)")
     if elements["ch_prev"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
@@ -1964,7 +1985,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("ch_next")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Next Chapter (PgUp)")
     if elements["ch_next"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
@@ -1984,7 +2005,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("volume")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Volume (9 / 0) Mute (m)")
     if elements["volume"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
@@ -2001,7 +2022,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("tog_fs")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Fullscreen (f)")
     if elements["tog_fs"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
@@ -2018,7 +2039,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("cy_sub")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Subtitle Track")
     if elements["cy_sub"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
@@ -2034,7 +2055,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("cy_audio")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Audio Track (#)")
     if elements["cy_audio"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
@@ -2053,7 +2074,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("pl_next")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Next (> / Enter)")
     if elements["pl_next"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
@@ -2069,7 +2090,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("pl_prev")
     lo.geometry = geo
-    lo.style = smallButtonStyle
+    lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Previous (<)")
     if elements["pl_prev"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
@@ -2090,8 +2111,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("cache")
     lo.geometry = geo
-    -- lo.style = osc_styles.timecodes
-    lo.style = "{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs20}"
+    lo.style = tethysStyle.cacheText
     if elements["cache"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -2111,8 +2131,7 @@ layouts["tethys"] = function()
     }
     lo = add_layout("tc_both")
     lo.geometry = geo
-    -- lo.style = osc_styles.timecodesBar
-    lo.style = timecodeStyle
+    lo.style = tethysStyle.timecode
 
 
     -- Seekbar
@@ -2123,15 +2142,15 @@ layouts["tethys"] = function()
         y = osc_geo.y,
         an = 7,
         w = osc_geo.w,
-        h = seekbarHeight,
+        h = tethys.seekbarHeight,
     }
 
     lo = add_layout("seekbar")
     lo.geometry = geo
-    lo.style = osc_styles.timecodesBar
+    lo.style = tethysStyle.seekbar
     lo.slider.border = 0
     lo.slider.gap = 2
-    lo.slider.tooltip_style = osc_styles.timePosBar
+    lo.slider.tooltip_style = tethysStyle.seekbarTimestamp
     lo.slider.tooltip_an = 2
     lo.slider.stype = "knob" -- user_opts["seekbarstyle"] -- bar diamond knob
     lo.slider.rtype = "slider" -- user_opts["seekrangestyle"] -- bar line slider inverted none
