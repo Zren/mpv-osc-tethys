@@ -751,11 +751,13 @@ function render_elements(master_ass)
                 xp = get_slider_ele_pos_for(element, pos)
 
                 if slider_lo.stype ~= "bar" then
+                    -- Circle Knob/Handle
                     local r = (user_opts.seekbarhandlesize * innerH) / 2
                     ass_draw_rr_h_cw(elem_ass, xp - r, foH - r,
                                      xp + r, foH + r,
                                      r, slider_lo.stype == "diamond")
                 else
+                    -- Solid Fill Until Knob Position
                     local h = 0
                     if seekRanges and user_opts.seekrangeseparate and slider_lo.rtype ~= "inverted" then
                         h = seekRangeLineHeight
@@ -779,13 +781,16 @@ function render_elements(master_ass)
                 end
 
                 if slider_lo.rtype == "slider" then
+                    -- -- Thick Slider BG Before Handle
                     ass_draw_rr_h_cw(elem_ass, foH - innerH / 6, foH - innerH / 6,
                                      xp, foH + innerH / 6,
                                      innerH / 6, slider_lo.stype == "diamond", 0)
+                    -- -- Thin Slider BG After Handle
                     ass_draw_rr_h_cw(elem_ass, xp, foH - innerH / 15,
                                      elem_geo.w - foH + innerH / 15, foH + innerH / 15,
                                      0, slider_lo.stype == "diamond", innerH / 15)
                     for _,range in pairs(seekRanges or {}) do
+                        -- Unknown ? (Drawn Again Below)
                         local pstart = get_slider_ele_pos_for(element, range["start"])
                         local pend = get_slider_ele_pos_for(element, range["end"])
                         ass_draw_rr_h_ccw(elem_ass, pstart, foH - innerH / 21,
@@ -797,6 +802,7 @@ function render_elements(master_ass)
 
             if seekRanges then
                 if slider_lo.rtype ~= "inverted" then
+                    -- Cached Slider BG
                     elem_ass:draw_stop()
                     elem_ass:merge(element.style_ass)
                     ass_append_alpha(elem_ass, element.layout.alpha, user_opts.seekrangealpha)
@@ -808,6 +814,7 @@ function render_elements(master_ass)
                     local pend = get_slider_ele_pos_for(element, range["end"])
 
                     if slider_lo.rtype == "slider" then
+                        -- Unknown ? (Drawn Twice Above)
                         ass_draw_rr_h_cw(elem_ass, pstart, foH - innerH / 21,
                                          pend, foH + innerH / 21,
                                          innerH / 21, slider_lo.stype == "diamond")
