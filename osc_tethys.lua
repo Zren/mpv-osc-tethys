@@ -106,6 +106,7 @@ local tethys = {
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
 
     -- Colors (uses GGBBRR for some reason)
+    seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
     chapterTickColor = "CCCCCC",
@@ -114,6 +115,10 @@ tethys.buttonW = tethys.controlsHeight
 tethys.buttonH = tethys.controlsHeight
 tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
 
+
+function genColorStyle(color)
+    return "{\\c&H"..color.."&}"
+end
 local tethysStyle = {
     button = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonH, tethys.osdSymbolFont),
     smallButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.smallButtonSize, tethys.osdSymbolFont),
@@ -122,6 +127,10 @@ local tethysStyle = {
     cacheText = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.cacheTextSize, tethys.osdSymbolFont),
     seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
     seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.seekbarTimestampSize),
+    seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
+    seekbarFg = genColorStyle(tethys.seekbarFgColor),
+    seekbarBg = genColorStyle(tethys.seekbarBgColor),
+    chapterTick = genColorStyle(tethys.chapterTickColor),
 }
 
 -- internal states, do not touch
@@ -504,6 +513,15 @@ end
 
 local elements = {}
 
+function reset_ass(elem_ass, element)
+    local elem_geo = element.layout.geometry
+    elem_ass:append("{}") -- hack to troll new_event into inserting a \n
+    elem_ass:new_event()
+    elem_ass:pos(elem_geo.x, elem_geo.y)
+    elem_ass:an(elem_geo.an)
+    elem_ass:append(element.layout.style)
+end
+
 function prepare_elements()
 
     -- remove elements without layout or invisble
@@ -533,11 +551,12 @@ function prepare_elements()
         local style_ass = assdraw.ass_new()
 
         -- prepare static elements
-        style_ass:append("{}") -- hack to troll new_event into inserting a \n
-        style_ass:new_event()
-        style_ass:pos(elem_geo.x, elem_geo.y)
-        style_ass:an(elem_geo.an)
-        style_ass:append(element.layout.style)
+        reset_ass(style_ass, element)
+        -- style_ass:append("{}") -- hack to troll new_event into inserting a \n
+        -- style_ass:new_event()
+        -- style_ass:pos(elem_geo.x, elem_geo.y)
+        -- style_ass:an(elem_geo.an)
+        -- style_ass:append(element.layout.style)
 
         element.style_ass = style_ass
 
@@ -584,15 +603,18 @@ function prepare_elements()
 
             -- -- --
 
-            static_ass:draw_start()
-
+            ---- This is drawn over
             -- the box
-            ass_draw_rr_h_cw(static_ass, 0, 0, elem_geo.w, elem_geo.h, r1, slider_lo.stype == "diamond")
-
+            -- ass_draw_rr_h_cw(static_ass, 0, 0, elem_geo.w, elem_geo.h, r1, slider_lo.stype == "diamond")
             -- the "hole"
-            ass_draw_rr_h_ccw(static_ass, slider_lo.border, slider_lo.border,
-                              elem_geo.w - slider_lo.border, elem_geo.h - slider_lo.border,
-                              r2, slider_lo.stype == "diamond")
+            -- ass_draw_rr_h_ccw(static_ass, slider_lo.border, slider_lo.border,
+            --                   elem_geo.w - slider_lo.border, elem_geo.h - slider_lo.border,
+            --                   r2, slider_lo.stype == "diamond")
+
+
+
+            static_ass:append(tethysStyle.chapterTick)
+            static_ass:draw_start()
 
             -- marker nibbles
             if not (element.slider.markerF == nil) and (slider_lo.gap > 0) then
@@ -642,6 +664,8 @@ function prepare_elements()
                     end
                 end
             end
+
+            static_ass:draw_stop()
         end
 
         element.static_ass = static_ass
@@ -749,66 +773,58 @@ function render_elements(master_ass)
                 foH = slider_lo.border + slider_lo.gap
             end
 
+            -- Reset everything as static_ass ended with draw_stop()
+            reset_ass(elem_ass, element)
+
             if pos then
                 xp = get_slider_ele_pos_for(element, pos)
 
-                if slider_lo.stype ~= "bar" then
-                    -- Circle Knob/Handle
-                    local r = (user_opts.seekbarhandlesize * innerH) / 2
-                    ass_draw_rr_h_cw(elem_ass, xp - r, foH - r,
-                                     xp + r, foH + r,
-                                     r, slider_lo.stype == "diamond")
-                else
-                    -- Solid Fill Until Knob Position
-                    local h = 0
-                    if seekRanges and user_opts.seekrangeseparate and slider_lo.rtype ~= "inverted" then
-                        h = seekRangeLineHeight
-                    end
-                    elem_ass:rect_cw(foH, foV, xp, elem_geo.h - foV - h)
+                -- Thick Slider BG Before Handle
+                elem_ass:append(tethysStyle.seekbarFg)
+                elem_ass:draw_start()
+                ass_draw_rr_h_cw(elem_ass, foH - innerH / 6, foH - innerH / 6,
+                                 xp, foH + innerH / 6,
+                                 innerH / 6, slider_lo.stype == "diamond", 0)
+                elem_ass:draw_stop()
+                reset_ass(elem_ass, element)
 
-                    if seekRanges and not user_opts.seekrangeseparate and slider_lo.rtype ~= "inverted" then
-                        -- Punch holes for the seekRanges to be drawn later
-                        for _,range in pairs(seekRanges) do
-                            if range["start"] < pos then
-                                local pstart = get_slider_ele_pos_for(element, range["start"])
-                                local pend = xp
+                -- Thin Slider BG After Handle
+                elem_ass:append(tethysStyle.seekbarBg)
+                elem_ass:draw_start()
+                ass_draw_rr_h_cw(elem_ass, xp, foH - innerH / 15,
+                                 elem_geo.w - foH + innerH / 15, foH + innerH / 15,
+                                 0, slider_lo.stype == "diamond", innerH / 15)
+                elem_ass:draw_stop()
+                reset_ass(elem_ass, element)
 
-                                if pos > range["end"] then
-                                    pend = get_slider_ele_pos_for(element, range["end"])
-                                end
-                                elem_ass:rect_ccw(pstart, elem_geo.h - foV - seekRangeLineHeight, pend, elem_geo.h - foV)
-                            end
-                        end
-                    end
+                elem_ass:draw_start()
+                for _,range in pairs(seekRanges or {}) do
+                    -- Unknown ? (Drawn Again Below)
+                    local pstart = get_slider_ele_pos_for(element, range["start"])
+                    local pend = get_slider_ele_pos_for(element, range["end"])
+                    ass_draw_rr_h_ccw(elem_ass, pstart, foH - innerH / 21,
+                                      pend, foH + innerH / 21,
+                                      innerH / 21, slider_lo.stype == "diamond")
                 end
+                elem_ass:draw_stop()
+                reset_ass(elem_ass, element)
 
-                if slider_lo.rtype == "slider" then
-                    -- -- Thick Slider BG Before Handle
-                    ass_draw_rr_h_cw(elem_ass, foH - innerH / 6, foH - innerH / 6,
-                                     xp, foH + innerH / 6,
-                                     innerH / 6, slider_lo.stype == "diamond", 0)
-                    -- -- Thin Slider BG After Handle
-                    ass_draw_rr_h_cw(elem_ass, xp, foH - innerH / 15,
-                                     elem_geo.w - foH + innerH / 15, foH + innerH / 15,
-                                     0, slider_lo.stype == "diamond", innerH / 15)
-                    for _,range in pairs(seekRanges or {}) do
-                        -- Unknown ? (Drawn Again Below)
-                        local pstart = get_slider_ele_pos_for(element, range["start"])
-                        local pend = get_slider_ele_pos_for(element, range["end"])
-                        ass_draw_rr_h_ccw(elem_ass, pstart, foH - innerH / 21,
-                                          pend, foH + innerH / 21,
-                                          innerH / 21, slider_lo.stype == "diamond")
-                    end
-                end
+                -- Circle Knob/Handle
+                elem_ass:append(tethysStyle.seekbarHandle)
+                elem_ass:draw_start()
+                local r = (user_opts.seekbarhandlesize * innerH) / 2
+                ass_draw_rr_h_cw(elem_ass, xp - r, foH - r,
+                                 xp + r, foH + r,
+                                 r, slider_lo.stype == "diamond")
+                elem_ass:draw_stop()
+                reset_ass(elem_ass, element)
             end
 
             if seekRanges then
+                elem_ass:draw_start()
                 if slider_lo.rtype ~= "inverted" then
                     -- Cached Slider BG
-                    elem_ass:draw_stop()
-                    elem_ass:merge(element.style_ass)
                     ass_append_alpha(elem_ass, element.layout.alpha, user_opts.seekrangealpha)
-                    elem_ass:merge(element.static_ass)
                 end
 
                 for _,range in pairs(seekRanges) do
