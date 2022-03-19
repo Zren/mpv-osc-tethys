@@ -608,18 +608,21 @@ function prepare_elements()
 
             ---- This is drawn over
             -- the box
+            -- static_ass:draw_start()
             -- ass_draw_rr_h_cw(static_ass, 0, 0, elem_geo.w, elem_geo.h, r1, slider_lo.stype == "diamond")
             -- the "hole"
             -- ass_draw_rr_h_ccw(static_ass, slider_lo.border, slider_lo.border,
             --                   elem_geo.w - slider_lo.border, elem_geo.h - slider_lo.border,
             --                   r2, slider_lo.stype == "diamond")
+            -- static_ass:draw_stop()
 
 
 
-            static_ass:append(tethysStyle.chapterTick)
-            static_ass:draw_start()
-
-            -- marker nibbles
+            -- Chapter Markers / Ticks / Nibbles
+            -- We store this ass as a property so we can draw them overtop the seekbar
+            local nibbles_ass = assdraw.ass_new()
+            nibbles_ass:append(tethysStyle.chapterTick)
+            nibbles_ass:draw_start()
             if not (element.slider.markerF == nil) and (slider_lo.gap > 0) then
                 local markers = element.slider.markerF()
                 for _,marker in pairs(markers) do
@@ -627,48 +630,18 @@ function prepare_elements()
                         (marker < element.slider.max.value) then
 
                         local s = get_slider_ele_pos_for(element, marker)
-
-                        if (slider_lo.gap > 1) then -- draw triangles
-
-                            local a = slider_lo.gap / 0.5 --0.866
-
-                            --top
-                            if (slider_lo.nibbles_top) then
-                                static_ass:move_to(s - (a/2), slider_lo.border)
-                                static_ass:line_to(s + (a/2), slider_lo.border)
-                                static_ass:line_to(s, foV)
-                            end
-
-                            --bottom
-                            if (slider_lo.nibbles_bottom) then
-                                static_ass:move_to(s - (a/2),
-                                    elem_geo.h - slider_lo.border)
-                                static_ass:line_to(s,
-                                    elem_geo.h - foV)
-                                static_ass:line_to(s + (a/2),
-                                    elem_geo.h - slider_lo.border)
-                            end
-
-                        else -- draw 2x1px nibbles
-
-                            --top
-                            if (slider_lo.nibbles_top) then
-                                static_ass:rect_cw(s - 1, slider_lo.border,
-                                    s + 1, slider_lo.border + slider_lo.gap);
-                            end
-
-                            --bottom
-                            if (slider_lo.nibbles_bottom) then
-                                static_ass:rect_cw(s - 1,
-                                    elem_geo.h -slider_lo.border -slider_lo.gap,
-                                    s + 1, elem_geo.h - slider_lo.border);
-                            end
-                        end
+                        local a = slider_lo.gap / 0.5 --0.866
+                        local sliderMid = elem_geo.h / 2
+                        local tickSize = 6
+                        local tickY = sliderMid - tickSize
+                        nibbles_ass:move_to(s - (a/2), tickY)
+                        nibbles_ass:line_to(s + (a/2), tickY)
+                        nibbles_ass:line_to(s, sliderMid)
                     end
                 end
             end
-
-            static_ass:draw_stop()
+            nibbles_ass:draw_stop()
+            slider_lo.nibbles_ass = nibbles_ass
         end
 
         element.static_ass = static_ass
@@ -810,6 +783,10 @@ function render_elements(master_ass)
                                       innerH / 21, slider_lo.stype == "diamond")
                 end
                 elem_ass:draw_stop()
+                reset_ass(elem_ass, element)
+
+                -- Chapter Ticks
+                elem_ass:merge(slider_lo.nibbles_ass)
                 reset_ass(elem_ass, element)
 
                 -- Circle Knob/Handle
