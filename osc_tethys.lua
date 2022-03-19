@@ -3,8 +3,6 @@ local msg = require 'mp.msg'
 local opt = require 'mp.options'
 local utils = require 'mp.utils'
 
-print("get_script_name: ".. mp.get_script_name())
-
 --
 -- Parameters
 --
