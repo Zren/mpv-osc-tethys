@@ -113,6 +113,7 @@ local tethys = {
     seekbarCacheColor = "424242",
     chapterTickColor = "CCCCCC",
 }
+tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
 tethys.buttonW = tethys.controlsHeight
 tethys.buttonH = tethys.controlsHeight
 tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
@@ -1757,7 +1758,7 @@ layouts["tethys"] = function()
         y,
         an = (direction < 0) and 7 or 1,
         w,
-        h = tethys.seekbarHeight + tethys.controlsHeight,
+        h = tethys.bottomBarHeight,
     }
 
     -- Alias
@@ -2660,6 +2661,12 @@ end
 --
 
 
+function updateSubMarginY(oscVisible)
+    local defMarginY = 22 -- https://mpv.io/manual/master/#options-sub-margin-y
+    local subMarginY = oscVisible and (defMarginY+tethys.bottomBarHeight) or defMarginY
+    mp.set_property_number("sub-margin-y", subMarginY)
+end
+
 function show_osc()
     -- show when disabled can happen (e.g. mouse_move) due to async/delayed unbinding
     if not state.enabled then return end
@@ -2696,6 +2703,7 @@ function osc_visible(visible)
     if state.osc_visible ~= visible then
         state.osc_visible = visible
         update_margins()
+        updateSubMarginY(visible)
     end
     request_tick()
 end
