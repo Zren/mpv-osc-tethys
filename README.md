@@ -32,6 +32,8 @@ keepaspect-window=no
 
 * https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua
 * https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua
+* https://github.com/Zren/mpvz/issues/13 (Theme Development Notes)
 * https://github.com/mpv-player/mpv/blob/master/player/lua/assdraw.lua
 * https://github.com/mpv-player/mpv/blob/master/sub/osd.c
-* https://github.com/Zren/mpvz/issues/13 (Theme Development Notes)
+* https://github.com/libass/libass/wiki/ASSv5-Override-Tags
+* https://github.com/libass/libass/wiki/Libass'-ASS-Extensions
