@@ -99,7 +99,7 @@ local osc_styles = {
 local tethys = {
     seekbarHeight = 20,
     controlsHeight = 64,
-    buttonTooltipSize = 24,
+    buttonTooltipSize = 20,
     cacheTextSize = 20,
     timecodeSize = 27,
     seekbarTimestampSize = 30,
@@ -513,10 +513,13 @@ end
 
 local elements = {}
 
-function reset_ass(elem_ass, element)
-    local elem_geo = element.layout.geometry
+function new_ass_node(elem_ass)
     elem_ass:append("{}") -- hack to troll new_event into inserting a \n
     elem_ass:new_event()
+end
+function reset_ass(elem_ass, element)
+    new_ass_node(elem_ass)
+    local elem_geo = element.layout.geometry
     elem_ass:pos(elem_geo.x, elem_geo.y)
     elem_ass:an(elem_geo.an)
     elem_ass:append(element.layout.style)
@@ -953,16 +956,25 @@ function render_elements(master_ass)
             -- Tooltip
             local button_lo = element.layout.button
             if buttonHovered and (not (button_lo.tooltip == nil)) then
-                -- tooltip label
-                local tx = button_lo.tooltip_geo.x -- element.hitbox.x1
-                local ty = button_lo.tooltip_geo.y -- element.hitbox.y1
+                local tx = button_lo.tooltip_geo.x
+                local ty = button_lo.tooltip_geo.y
                 local tooltipAlpha =  {[1] = 0, [2] = 255, [3] = 88, [4] = 255}
-                elem_ass:new_event()
-                elem_ass:pos(tx, ty)
-                elem_ass:an(button_lo.tooltip_an)
-                elem_ass:append(button_lo.tooltip_style)
-                ass_append_alpha(elem_ass, tooltipAlpha, 0)
-                elem_ass:append(button_lo.tooltip)
+                local labelList = {}
+                if type(button_lo.tooltip) == "string" then
+                    labelList = { button_lo.tooltip }
+                elseif type(button_lo.tooltip) == "table" then
+                    labelList = button_lo.tooltip
+                end
+                for i, label in ipairs(labelList) do
+                    new_ass_node(elem_ass)
+                    elem_ass:pos(tx, ty - ((i-1) * tethys.buttonTooltipSize))
+                    elem_ass:an(button_lo.tooltip_an)
+                    elem_ass:append(button_lo.tooltip_style)
+                    ass_append_alpha(elem_ass, tooltipAlpha, 0)
+                    elem_ass.scale = 1
+                    elem_ass:append(label)
+                    elem_ass.scale = 4
+                end
             end
         end
 
@@ -1915,7 +1927,7 @@ layouts["tethys"] = function()
     lo = add_layout("playpause")
     lo.geometry = geo
     lo.style = tethysStyle.button
-    setButtonTooltip(lo, "Play (p / Space)")
+    setButtonTooltip(lo, "Play (Space)")
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Skip Backwards
@@ -1993,7 +2005,7 @@ layouts["tethys"] = function()
     lo = add_layout("volume")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Volume (9 / 0) Mute (m)")
+    setButtonTooltip(lo, {"Volume Down (9) Up (0)", "Mute (M)"})
     if elements["volume"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
     end
@@ -2010,7 +2022,7 @@ layouts["tethys"] = function()
     lo = add_layout("tog_fs")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Fullscreen (f)")
+    setButtonTooltip(lo, "Fullscreen (F)")
     if elements["tog_fs"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -2062,7 +2074,7 @@ layouts["tethys"] = function()
     lo = add_layout("pl_next")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Next (> / Enter)")
+    setButtonTooltip(lo, {"Next (>)", "Next (Enter)"})
     if elements["pl_next"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
