@@ -37,3 +37,4 @@ keepaspect-window=no
 * https://github.com/mpv-player/mpv/blob/master/sub/osd.c
 * https://github.com/libass/libass/wiki/ASSv5-Override-Tags
 * https://github.com/libass/libass/wiki/Libass'-ASS-Extensions
+* https://mpv.io/manual/master/
