@@ -110,6 +110,7 @@ local tethys = {
     seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
+    seekbarCacheColor = "424242",
     chapterTickColor = "CCCCCC",
 }
 tethys.buttonW = tethys.controlsHeight
@@ -133,6 +134,7 @@ local tethysStyle = {
     seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
     seekbarFg = genColorStyle(tethys.seekbarFgColor),
     seekbarBg = genColorStyle(tethys.seekbarBgColor),
+    seekbarCache = genColorStyle(tethys.seekbarCacheColor),
     chapterTick = genColorStyle(tethys.chapterTickColor),
 }
 
@@ -182,16 +184,6 @@ local is_december = os.date("*t").month == 12
 --- Icons
 ---
 
-local tethys_icon_test = {
-    -- mpv icon
-    -- "{\\c&HE5E5E5&\\p6}m 895 10 b 401 10 0 410 0 905 0 1399 401 1800 895 1800 1390 1800 1790 1399 1790 905 1790 410 1390 10 895 10 {\\p0}",
-    -- "{\\c&H682167&\\p6}m 925 42 b 463 42 87 418 87 880 87 1343 463 1718 925 1718 1388 1718 1763 1343 1763 880 1763 418 1388 42 925 42{\\p0}",
-    -- "{\\c&H430142&\\p6}m 1605 828 b 1605 1175 1324 1456 977 1456 631 1456 349 1175 349 828 349 482 631 200 977 200 1324 200 1605 482 1605 828{\\p0}",
-    -- "{\\c&HDDDBDD&\\p6}m 1296 910 b 1296 1131 1117 1310 897 1310 676 1310 497 1131 497 910 497 689 676 511 897 511 1117 511 1296 689 1296 910{\\p0}",
-
-    "{\\c&HC0C0C0&\\p1}m 31 21   b 34 23 34 24 31 26   b 21 33 12 39 10 39   b 8 39 8 36 8 23.5   b 8 12 8 9 10 9   b 12 9 21 14 31 21{\\p0}",
-}
-
 -- 44x44
 local tethys_icon_play = "{\\c&HC0C0C0&\\p1}m 37.733335 17.6   b 42.081201 20.610064 42.081201 21.923269 37.733335 24.933333   b 23.013670 35.123867 9.866667 44.000000 6.933333 44.000000   b 4 44 4 39.6 4 21.266665   b 4 4.4 4 0 6.933333 0   b 9.866667 0 23.013670 7.409462 37.733335 17.6{\\p0}"
 local tethys_icon_pause = "{\\c&HC0C0C0&\\p1}m 17 40   b 17 45 4 45 4 40   l 4 4   b 4 -1 17 -1 17 4   m 39 40    b 39 45 26 45 26 40   l 26 4   b 26 -1 39 -1 39 4{\\p0}"
@@ -203,6 +195,7 @@ local tethys_ch_prev = "{\\c&HC0C0C0&\\p1}m 14.611669 6   b 13.129442 7.026159 1
 local tethys_ch_next = "{\\c&HC0C0C0&\\p1}m 11.500001 6   b 12.982228 7.026159 12.982228 7.473842 11.500001 8.500001   b 6.481932 11.974048 1.999999 15 1 15   b 0 15 0 13.500001 0 7.25   b 0 1.500001 0 0 1 0   b 1.999999 0 6.481932 2.525952 11.500001 6   m 25 6   b 26.482227 7.026159 26.482227 7.473842 25 8.500001   b 19.981931 11.974048 15.499998 15 14.499999 15   b 13.499999 15 13.499999 13.500001 13.499999 7.25   b 13.499999 1.500001 13.499999 0 14.499999 0   b 15.499998 0 19.981931 2.525952 25 6{\\p0}"
 local tethys_pl_prev = "{\\c&HC0C0C0&\\p1}m 9.133332 8.8   b 6.959399 10.305034 6.959399 10.961635 9.133332 12.466668   b 16.493166 17.561937 23.066668 22 24.533334 22   b 26 22 26 19.800002 26 10.633333   b 26 2.200001 26 0 24.533334 0   b 23.066668 0 16.493166 3.70473 9.133332 8.8   m 0 20.103196   b 0 22.631901 6.574631 22.631901 6.574631 20.105396   l 6.574631 1.896528   b 6.574631 -0.632176 0 -0.632176 0 1.896528{\\p0}"
 local tethys_pl_next = "{\\c&HC0C0C0&\\p1}m 16.866668 8.8   b 19.040601 10.305034 19.040601 10.961635 16.866668 12.466668   b 9.506834 17.561937 2.933332 22 1.466666 22   b 0 22 0 19.800002 0 10.633333   b 0 2.200001 0 0 1.466666 0   b 2.933332 0 9.506834 3.70473 16.866668 8.8   m 26 20.103196   b 26 22.631901 19.425369 22.631901 19.425369 20.105396   l 19.425369 1.896528   b 19.425369 -0.632176 26 -0.632176 26 1.896528{\\p0}"
+
 
 --
 -- Helperfunctions
@@ -760,31 +753,54 @@ function render_elements(master_ass)
                 xp = get_slider_ele_pos_for(element, pos)
 
                 -- Thick Slider BG Before Handle
+                local sliderFgRatio = 6 -- 1/6th Height
                 elem_ass:append(tethysStyle.seekbarFg)
                 elem_ass:draw_start()
-                ass_draw_rr_h_cw(elem_ass, foH - innerH / 6, foH - innerH / 6,
-                                 xp, foH + innerH / 6,
-                                 innerH / 6, slider_lo.stype == "diamond", 0)
+                -- Note: round_rect_cw(x0, y0, x1, y1, r1, r2)
+                elem_ass:round_rect_cw(
+                    foH - innerH / sliderFgRatio,
+                    foH - innerH / sliderFgRatio,
+                    xp,
+                    foH + innerH / sliderFgRatio,
+                    innerH / sliderFgRatio,
+                    0
+                )
                 elem_ass:draw_stop()
                 reset_ass(elem_ass, element)
 
                 -- Thin Slider BG After Handle
+                -- local sliderBgRatio = 15 -- 1/15th Height
+                local sliderBgRatio = 6
                 elem_ass:append(tethysStyle.seekbarBg)
                 elem_ass:draw_start()
-                ass_draw_rr_h_cw(elem_ass, xp, foH - innerH / 15,
-                                 elem_geo.w - foH + innerH / 15, foH + innerH / 15,
-                                 0, slider_lo.stype == "diamond", innerH / 15)
+                -- Note: round_rect_cw(x0, y0, x1, y1, r1, r2)
+                elem_ass:round_rect_cw(
+                    xp,
+                    foH - innerH / sliderBgRatio,
+                    elem_geo.w - foH + innerH / sliderBgRatio,
+                    foH + innerH / sliderBgRatio,
+                    0,
+                    innerH / sliderBgRatio
+                )
                 elem_ass:draw_stop()
                 reset_ass(elem_ass, element)
 
+                -- Cache / Seek Ranges
+                elem_ass:append(tethysStyle.seekbarCache)
                 elem_ass:draw_start()
+                local cacheBgRatio = 21 -- 1/21th Height
                 for _,range in pairs(seekRanges or {}) do
-                    -- Unknown ? (Drawn Again Below)
                     local pstart = get_slider_ele_pos_for(element, range["start"])
                     local pend = get_slider_ele_pos_for(element, range["end"])
-                    ass_draw_rr_h_ccw(elem_ass, pstart, foH - innerH / 21,
-                                      pend, foH + innerH / 21,
-                                      innerH / 21, slider_lo.stype == "diamond")
+                    -- Note: round_rect_ccw(x0, y0, x1, y1, r1, r2)
+                    elem_ass:round_rect_ccw(
+                        pstart,
+                        foH - innerH / cacheBgRatio,
+                        pend,
+                        foH + innerH / cacheBgRatio,
+                        innerH / cacheBgRatio,
+                        nil
+                    )
                 end
                 elem_ass:draw_stop()
                 reset_ass(elem_ass, element)
@@ -797,60 +813,18 @@ function render_elements(master_ass)
                 elem_ass:append(tethysStyle.seekbarHandle)
                 elem_ass:draw_start()
                 local r = (user_opts.seekbarhandlesize * innerH) / 2
-                ass_draw_rr_h_cw(elem_ass, xp - r, foH - r,
-                                 xp + r, foH + r,
-                                 r, slider_lo.stype == "diamond")
+                -- Note: round_rect_cw(x0, y0, x1, y1, r1, r2)
+                elem_ass:round_rect_cw(
+                    xp - r,
+                    foH - r,
+                    xp + r,
+                    foH + r,
+                    r,
+                    nil
+                )
                 elem_ass:draw_stop()
                 reset_ass(elem_ass, element)
             end
-
-            if seekRanges then
-                elem_ass:draw_start()
-                if slider_lo.rtype ~= "inverted" then
-                    -- Cached Slider BG
-                    ass_append_alpha(elem_ass, element.layout.alpha, user_opts.seekrangealpha)
-                end
-
-                for _,range in pairs(seekRanges) do
-                    local pstart = get_slider_ele_pos_for(element, range["start"])
-                    local pend = get_slider_ele_pos_for(element, range["end"])
-
-                    if slider_lo.rtype == "slider" then
-                        -- Unknown ? (Drawn Twice Above)
-                        ass_draw_rr_h_cw(elem_ass, pstart, foH - innerH / 21,
-                                         pend, foH + innerH / 21,
-                                         innerH / 21, slider_lo.stype == "diamond")
-                    elseif slider_lo.rtype == "line" then
-                        if slider_lo.stype == "bar" then
-                            elem_ass:rect_cw(pstart, elem_geo.h - foV - seekRangeLineHeight, pend, elem_geo.h - foV)
-                        else
-                            ass_draw_rr_h_cw(elem_ass, pstart - innerH / 8, foH - innerH / 8,
-                                             pend + innerH / 8, foH + innerH / 8,
-                                             innerH / 8, slider_lo.stype == "diamond")
-                        end
-                    elseif slider_lo.rtype == "bar" then
-                        if slider_lo.stype ~= "bar" then
-                            ass_draw_rr_h_cw(elem_ass, pstart - innerH / 2, foV,
-                                             pend + innerH / 2, foV + innerH,
-                                             innerH / 2, slider_lo.stype == "diamond")
-                        elseif range["end"] >= (pos or 0) then
-                            elem_ass:rect_cw(pstart, foV, pend, elem_geo.h - foV)
-                        else
-                            elem_ass:rect_cw(pstart, elem_geo.h - foV - seekRangeLineHeight, pend, elem_geo.h - foV)
-                        end
-                    elseif slider_lo.rtype == "inverted" then
-                        if slider_lo.stype ~= "bar" then
-                            ass_draw_rr_h_ccw(elem_ass, pstart, (elem_geo.h / 2) - 1, pend,
-                                              (elem_geo.h / 2) + 1,
-                                              1, slider_lo.stype == "diamond")
-                        else
-                            elem_ass:rect_ccw(pstart, (elem_geo.h / 2) - 1, pend, (elem_geo.h / 2) + 1)
-                        end
-                    end
-                end
-            end
-
-            elem_ass:draw_stop()
 
             -- add tooltip
             if not (element.slider.tooltipF == nil) then
