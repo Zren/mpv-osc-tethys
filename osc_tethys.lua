@@ -115,6 +115,7 @@ local tethys = {
 tethys.buttonW = tethys.controlsHeight
 tethys.buttonH = tethys.controlsHeight
 tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
+tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
 
 
 function genColorStyle(color)
@@ -123,6 +124,7 @@ end
 local tethysStyle = {
     button = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonH, tethys.osdSymbolFont),
     smallButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.smallButtonSize, tethys.osdSymbolFont),
+    trackButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.trackButtonSize, tethys.osdSymbolFont),
     buttonTooltip = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(tethys.buttonTooltipSize),
     timecode = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.cacheTextSize, tethys.osdSymbolFont),
@@ -2007,17 +2009,18 @@ layouts["tethys"] = function()
     end
 
     -- Subtitle track
-    local trackButtonWidth = smallButtonSize * 2.5
+    local trackButtonSize = tethys.trackButtonSize
+    local trackButtonWidth = trackButtonSize * 2.5
     geo = {
         x = rightX - rightSectionWidth - trackButtonWidth/2,
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = trackButtonWidth,
-        h = smallButtonSize,
+        h = trackButtonSize,
     }
     lo = add_layout("cy_sub")
     lo.geometry = geo
-    lo.style = tethysStyle.smallButton
+    lo.style = tethysStyle.trackButton
     setButtonTooltip(lo, "Subtitle Track")
     if elements["cy_sub"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
@@ -2029,11 +2032,11 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = trackButtonWidth,
-        h = smallButtonSize,
+        h = trackButtonSize,
     }
     lo = add_layout("cy_audio")
     lo.geometry = geo
-    lo.style = tethysStyle.smallButton
+    lo.style = tethysStyle.trackButton
     setButtonTooltip(lo, "Audio Track (#)")
     if elements["cy_audio"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
