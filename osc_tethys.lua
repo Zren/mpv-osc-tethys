@@ -103,6 +103,7 @@ local tethys = {
     cacheTextSize = 20,
     timecodeSize = 27,
     seekbarTimestampSize = 30,
+    chapterTickSize = 6,
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
 
     -- Colors (uses GGBBRR for some reason)
@@ -630,10 +631,9 @@ function prepare_elements()
                         (marker < element.slider.max.value) then
 
                         local s = get_slider_ele_pos_for(element, marker)
-                        local a = slider_lo.gap / 0.5 --0.866
+                        local a = tethys.chapterTickSize * 0.8
                         local sliderMid = elem_geo.h / 2
-                        local tickSize = 6
-                        local tickY = sliderMid - tickSize
+                        local tickY = sliderMid - tethys.chapterTickSize
                         nibbles_ass:move_to(s - (a/2), tickY)
                         nibbles_ass:line_to(s + (a/2), tickY)
                         nibbles_ass:line_to(s, sliderMid)
