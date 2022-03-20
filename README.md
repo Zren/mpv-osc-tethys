@@ -6,7 +6,7 @@ This theme replaces [the built in `osc.lua`](https://github.com/mpv-player/mpv/b
 
 ### Install
 
-(1) Copy `osc_tethys.lua` and mpv's `autoload.lua` to `~/.config/mpv/scripts/`
+(1) Copy `osc_tethys.lua` and mpv's `autoload.lua` to `~/.config/mpv/scripts/` (`%APPDATA%\mpv\scripts\` on Windows).
 
 ```sh
 mkdir -p ~/.config/mpv/scripts/
@@ -15,7 +15,7 @@ wget https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/osc_tethys.lua
 wget https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.lua
 ```
 
-(2) Edit `~/.config/mpv/mpv.conf` to disable the default `osc.lua` and improve the window.
+(2) Edit `~/.config/mpv/mpv.conf` (`%APPDATA%\mpv\mpv.conf` on Windows) to disable the default `osc.lua` and improve the window.
 
 * `border=no` will remove the window titlebar and frame. You can still drag a window by dragging the video.
 * `keep-open=yes` will keep the player open after the video has finished.
