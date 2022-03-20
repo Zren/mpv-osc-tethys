@@ -38,3 +38,13 @@ keepaspect-window=no
 * https://github.com/libass/libass/wiki/ASSv5-Override-Tags
 * https://github.com/libass/libass/wiki/Libass'-ASS-Extensions
 * https://mpv.io/manual/master/
+
+### Other Themes
+
+I haven't tried these, but have used them as reference.
+
+* https://github.com/cyl0/MordenX
+* https://github.com/maoiscat/mpv-osc-morden
+* https://github.com/maoiscat/mpv-light-box
+* https://github.com/TheAMM/mpv_thumbnail_script
+* https://github.com/darsain/uosc
