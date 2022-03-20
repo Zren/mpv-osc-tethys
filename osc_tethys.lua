@@ -896,7 +896,7 @@ function render_elements(master_ass)
             end
 
             local buttonHovered = mouse_hit(element)
-            if buttonHovered then
+            if buttonHovered and element.enabled then
                 buttontext = "{\\c&HFFFFFF}" .. buttontext
 
                 local shadow_ass = assdraw.ass_new()
