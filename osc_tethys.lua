@@ -110,7 +110,8 @@ local tethys = {
     seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
-    seekbarCacheColor = "424242",
+    seekbarCacheColor = "000000",
+    seekbarCacheAlpha = 128, -- 0..255
     chapterTickColor = "CCCCCC",
 }
 tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
@@ -122,6 +123,7 @@ tethys.windowControlsRect = {
     w = tethys.windowButtonSize * 3,
     h = tethys.windowBarHeight,
 }
+tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
 
 
 function genColorStyle(color)
@@ -794,18 +796,31 @@ function render_elements(master_ass)
 
                 -- Cache / Seek Ranges
                 elem_ass:append(tethysStyle.seekbarCache)
+                ass_append_alpha(elem_ass, tethys.seekbarCacheAlphaTable, 0)
                 elem_ass:draw_start()
-                local cacheBgRatio = 21 -- 1/21th Height
+                -- local cacheBgRatio = 21 -- 1/21th Height
+                local seekbarY1 = foH - innerH / sliderFgRatio
+                local seekbarY2 = foH + innerH / sliderFgRatio
+                local cachebarY1 = seekbarY1 + 1
+                local cachebarY2 = seekbarY2 - 1
                 for _,range in pairs(seekRanges or {}) do
                     local pstart = get_slider_ele_pos_for(element, range["start"])
                     local pend = get_slider_ele_pos_for(element, range["end"])
                     -- Note: round_rect_ccw(x0, y0, x1, y1, r1, r2)
+                    -- elem_ass:round_rect_ccw(
+                    --     pstart,
+                    --     foH - innerH / cacheBgRatio,
+                    --     pend,
+                    --     foH + innerH / cacheBgRatio,
+                    --     innerH / cacheBgRatio,
+                    --     nil
+                    -- )
                     elem_ass:round_rect_ccw(
                         pstart,
-                        foH - innerH / cacheBgRatio,
+                        cachebarY1,
                         pend,
-                        foH + innerH / cacheBgRatio,
-                        innerH / cacheBgRatio,
+                        cachebarY2,
+                        0,
                         nil
                     )
                 end
