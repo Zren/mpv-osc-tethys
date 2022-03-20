@@ -98,6 +98,8 @@ local tethys = {
     seekbarHeight = 20,
     controlsHeight = 64,
     buttonTooltipSize = 20,
+    windowBarHeight = 44,
+    windowButtonSize = 44,
     cacheTextSize = 20,
     timecodeSize = 27,
     seekbarTimestampSize = 30,
@@ -116,6 +118,10 @@ tethys.buttonW = tethys.controlsHeight
 tethys.buttonH = tethys.controlsHeight
 tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
 tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
+tethys.windowControlsRect = {
+    w = tethys.windowButtonSize * 3,
+    h = tethys.windowBarHeight,
+}
 
 
 function genColorStyle(color)
@@ -125,6 +131,8 @@ local tethysStyle = {
     button = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonH, tethys.osdSymbolFont),
     smallButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.smallButtonSize, tethys.osdSymbolFont),
     trackButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.trackButtonSize, tethys.osdSymbolFont),
+    windowBar = "{\\1c&H000000}",
+    windowButton = ("{\\1c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.windowButtonSize, tethys.osdSymbolFont),
     buttonTooltip = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(tethys.buttonTooltipSize),
     timecode = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.cacheTextSize, tethys.osdSymbolFont),
@@ -1119,16 +1127,19 @@ end
 
 -- Window Controls
 function window_controls(topbar)
+    local windowBarHeight = 30
+    local windowButtonSize = tethys.windowButtonSize
+    local windowBarSpacing = 5
     local wc_geo = {
         x = 0,
-        y = 30 + user_opts.barmargin,
-        an = 1,
+        y = tethys.windowBarHeight + user_opts.barmargin,
+        an = 1, -- x,y is bottom left
         w = osc_param.playresx,
-        h = 30,
+        h = tethys.windowBarHeight,
     }
 
     local alignment = window_controls_alignment()
-    local controlbox_w = window_control_box_width
+    local controlbox_w = windowBarSpacing + tethys.windowControlsRect.w
     local titlebox_w = wc_geo.w - controlbox_w
 
     -- Default alignment is "right"
@@ -1153,16 +1164,31 @@ function window_controls(topbar)
     lo = add_layout("wcbar")
     lo.geometry = wc_geo
     lo.layer = 10
-    lo.style = osc_styles.wcBar
+    lo.style = tethysStyle.windowBar
     lo.alpha[1] = user_opts.boxalpha
 
     local button_y = wc_geo.y - (wc_geo.h / 2)
-    local first_geo =
-        {x = controlbox_left + 5, y = button_y, an = 4, w = 25, h = 25}
-    local second_geo =
-        {x = controlbox_left + 30, y = button_y, an = 4, w = 25, h = 25}
-    local third_geo =
-        {x = controlbox_left + 55, y = button_y, an = 4, w = 25, h = 25}
+    local first_geo = {
+        x = controlbox_left + windowBarSpacing + tethys.windowButtonSize*0,
+        y = button_y,
+        an = 4, -- x,y is left-center
+        w = tethys.windowButtonSize,
+        h = tethys.windowButtonSize,
+    }
+    local second_geo = {
+        x = controlbox_left + windowBarSpacing + tethys.windowButtonSize*1,
+        y = button_y,
+        an = 4, -- x,y is left-center
+        w = tethys.windowButtonSize,
+        h = tethys.windowButtonSize,
+    }
+    local third_geo = {
+        x = controlbox_left + windowBarSpacing + tethys.windowButtonSize*2,
+        y = button_y,
+        an = 4, -- x,y is left-center
+        w = tethys.windowButtonSize,
+        h = tethys.windowButtonSize,
+    }
 
     -- Window control buttons use symbols in the custom mpv osd font
     -- because the official unicode codepoints are sufficiently
@@ -1177,7 +1203,7 @@ function window_controls(topbar)
         function () mp.commandv("quit") end
     lo = add_layout("close")
     lo.geometry = alignment == "left" and first_geo or third_geo
-    lo.style = osc_styles.wcButtons
+    lo.style = tethysStyle.windowButton
 
     -- Minimize: 🗕
     ne = new_element("minimize", "button")
@@ -1186,7 +1212,7 @@ function window_controls(topbar)
         function () mp.commandv("cycle", "window-minimized") end
     lo = add_layout("minimize")
     lo.geometry = alignment == "left" and second_geo or first_geo
-    lo.style = osc_styles.wcButtons
+    lo.style = tethysStyle.windowButton
 
     -- Maximize: 🗖 /🗗
     ne = new_element("maximize", "button")
@@ -1205,7 +1231,7 @@ function window_controls(topbar)
         end
     lo = add_layout("maximize")
     lo.geometry = alignment == "left" and third_geo or second_geo
-    lo.style = osc_styles.wcButtons
+    lo.style = tethysStyle.windowButton
 
     -- deadzone below window controls
     local sh_area_y0, sh_area_y1
@@ -1772,19 +1798,6 @@ layouts["tethys"] = function()
     local minW = (buttonW + padX)*5 + (tcW + padX)*4 + (tsW + padX)*2
 
     -- Special topbar handling when window controls are present
-    local padwc_l
-    local padwc_r
-    if direction < 0 or not window_controls_enabled() then
-        padwc_l = 0
-        padwc_r = 0
-    elseif window_controls_alignment() == "left" then
-        padwc_l = window_control_box_width
-        padwc_r = 0
-    else
-        padwc_l = 0
-        padwc_r = window_control_box_width
-    end
-
     if ((osc_param.display_aspect > 0) and (osc_param.playresx < minW)) then
         osc_param.playresy = minW / osc_param.display_aspect
         osc_param.playresx = osc_param.playresy * osc_param.display_aspect
@@ -1801,8 +1814,8 @@ layouts["tethys"] = function()
     -- local line2 = osc_geo.y - direction * (36 + padY)
     local line1Y = osc_geo.y - direction * tethys.seekbarHeight
     local line2Y = osc_geo.y - direction * tethys.controlsHeight
-    local leftPad = padX + padwc_l
-    local rightPad = padX + padwc_r
+    local leftPad = padX
+    local rightPad = padX
     local leftX = osc_geo.x + leftPad
     local rightX = osc_geo.w - rightPad
     local leftSectionWidth = leftPad
