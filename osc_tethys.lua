@@ -151,10 +151,20 @@ function genColorStyle(color)
     -- return "{\\c(#"..color..")}" -- Only works for paths, and breaks other stuff.
 end
 
--- Not sure why \\1c is rect fill color. Here's docs for \3c:
+---- mpv's stats.lua has some ASS formatting
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L62
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L176
+-- "{\\r}{\\an7}{\\fs%d}{\\fn%s}{\\bord%f}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H%s&}{\\xshad%f}{\\yshad%f}{\\4c&H%s&}"
+-- {\\bord%f} = border size
+-- {\\3c&H%s&} = border color
+-- {\\1c&H%s&} = font color
+-- {\\alpha&H%s&} = alpha
+-- {\\xshad%f}{\\yshad%f} = shadow x,y offset
+-- {\\4c&H%s&} = shadow color
+---- \\q2 in windowTitle is unknown
+---- Not sure why \1c is rect fill color. Here's docs for \3c:
 -- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
 -- "{\\1c&H"..color.."}"
--- No idea what \\q2 is in windowTitle
 local tethysStyle = {
     button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
     buttonHovered = genColorStyle(tethys.buttonHoveredColor),
