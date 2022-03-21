@@ -123,7 +123,8 @@ local tethys = {
     buttonHoveredColor = "FFFFFF",
     windowBarColor = "000000",
     windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
-    windowButtonColor = "FFFFFF",
+    windowButtonColor = "CCCCCC",
+    closeButtonHoveredColor = "1111DD", -- #DD1111
     seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
@@ -173,6 +174,7 @@ local tethysStyle = {
     trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
     windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
     windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
     windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
     buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.textColor, tethys.buttonTooltipSize),
     timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
@@ -933,6 +935,7 @@ function render_elements(master_ass)
             end
 
         elseif (element.type == "button") then
+            local button_lo = element.layout.button
 
             local buttontext
             if type(element.content) == "function" then
@@ -963,7 +966,7 @@ function render_elements(master_ass)
             )
             local buttonHovered = mouse_hit(element)
             if isButton and buttonHovered and element.enabled then
-                buttontext = tethysStyle.buttonHovered .. buttontext
+                buttontext = button_lo.hover_style .. buttontext
 
                 local shadow_ass = assdraw.ass_new()
                 shadow_ass:merge(style_ass)
@@ -974,7 +977,6 @@ function render_elements(master_ass)
             elem_ass:append(buttontext)
 
             -- Tooltip
-            local button_lo = element.layout.button
             if buttonHovered and (not (button_lo.tooltip == nil)) then
                 local tx = button_lo.tooltip_geo.x
                 local ty = button_lo.tooltip_geo.y
@@ -1159,6 +1161,7 @@ function add_layout(name)
         if (elements[name].type == "button") then
             elements[name].layout.button = {
                 maxchars = nil,
+                hover_style = tethysStyle.buttonHovered,
             }
         elseif (elements[name].type == "slider") then
             -- slider defaults
@@ -1262,6 +1265,7 @@ function window_controls(topbar)
     lo = add_layout("close")
     lo.geometry = alignment == "left" and first_geo or third_geo
     lo.style = tethysStyle.windowButton
+    lo.button.hover_style = tethysStyle.closeButtonHovered
     lo.alpha[3] = 0 -- show outline (aka border)
 
     -- Minimize: 🗕
