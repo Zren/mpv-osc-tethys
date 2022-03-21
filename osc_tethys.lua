@@ -2487,6 +2487,9 @@ function osc_init()
     end
     ne.eventresponder["mouse_move"] = --keyframe seeking when mouse is dragged
         function (element)
+            if not element.state.mbtnleft then
+                return -- allow drag for mbtnleft only
+            end
             -- mouse move events may pile up during seeking and may still get
             -- sent when the user is done seeking, so we need to throw away
             -- identical seeks
@@ -2503,8 +2506,34 @@ function osc_init()
 
         end
     ne.eventresponder["mbtn_left_down"] = --exact seeks on single clicks
-        function (element) mp.commandv("seek", get_slider_value(element),
-            "absolute-percent", "exact") end
+        function (element)
+            element.state.mbtnleft = true
+            mp.commandv("seek", get_slider_value(element), "absolute-percent", "exact")
+        end
+    ne.eventresponder['mbtn_left_up'] =
+        function (element)
+            element.state.mbtnleft = false
+        end
+    ne.eventresponder['mbtn_right_down'] = --seeks to chapter start
+        function (element)
+            -- Source: https://github.com/maoiscat/mpv-osc-morden/blob/main/morden.lua#L1395-L1413
+            local duration = mp.get_property_number("duration", nil)
+            if not (duration == nil) then
+                local chapters = mp.get_property_native("chapter-list", {})
+                if #chapters > 0 then
+                    local pos = get_slider_value(element)
+                    local ch = #chapters
+                    for n = 1, ch do
+                        if chapters[n].time / duration * 100 >= pos then
+                            ch = n - 1
+                            break
+                        end
+                    end
+                    mp.commandv("set", "chapter", ch - 1)
+                    --if chapters[ch].title then show_message(chapters[ch].time) end
+                end
+            end
+        end
     ne.eventresponder["reset"] =
         function (element) element.state.lastseek = nil end
 
