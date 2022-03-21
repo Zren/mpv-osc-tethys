@@ -1982,7 +1982,10 @@ layouts["tethys"] = function()
     lo = add_layout("skipback")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Back 10s (LeftArrow)")
+    setButtonTooltip(lo, {
+        ("Back %ds (LeftArrow)"):format(tethys.skipBy),
+        ("Back %ds (RightClick)"):format(tethys.skipByMore),
+    })
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Skip Forwards
@@ -1996,7 +1999,10 @@ layouts["tethys"] = function()
     lo = add_layout("skipfrwd")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Forward 10s (RightArrow)")
+    setButtonTooltip(lo, {
+        ("Forward %ds (RightArrow)"):format(tethys.skipBy),
+        ("Forward %ds (RightClick)"):format(tethys.skipByMore),
+    })
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Chapter Prev
