@@ -66,12 +66,16 @@ def generatePath(filepath):
 
 def printIcon(name, htmlFilename):
 	path = generatePath(htmlFilename)
-	print(r'local ' + name + r' = "{\\c&HC0C0C0&\\p1}' + path + r'{\\p0}"')
+	print(r'local ' + name + r' = "{\\p1}' + path + r'{\\p0}"')
 
 def genIconPath(name, svgFilepath):
 	htmlFilepath = convertToCanvas(svgFilepath)
 	printIcon(name, htmlFilepath)
 
+print('---')
+print('--- Icons')
+print('---')
+print()
 print('-- 44x44')
 genIconPath('tethysIcon_play', 'tethys_play.svg')
 genIconPath('tethysIcon_pause', 'tethys_pause.svg')
