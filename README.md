@@ -28,6 +28,18 @@ keep-open=yes
 keepaspect-window=no
 ```
 
+(3) Edit `~/.config/mpv/input.conf` (`%APPDATA%\mpv\input.conf` on Windows) to rebind LEFT/RIGHT arrows to exactly 5s skips.
+
+```ini
+# Defaults: https://github.com/mpv-player/mpv/blob/master/etc/input.conf
+
+# Seek by exactly 5s instead of relative+keyframes 10s
+RIGHT seek  5 exact            # forward
+LEFT  seek -5 exact            # backward
+WHEEL_UP      seek  5 exact    # forward
+WHEEL_DOWN    seek -5 exact    # backward
+```
+
 ### Notes
 
 * https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua
