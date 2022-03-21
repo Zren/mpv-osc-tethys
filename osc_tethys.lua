@@ -926,8 +926,12 @@ function render_elements(master_ass)
                     (maxchars/#buttontext)*100) .. buttontext
             end
 
+            local isButton = element.eventresponder and (
+                not (element.eventresponder["mbtn_left_down"] == nil)
+                or not (element.eventresponder["mbtn_left_up"] == nil)
+            )
             local buttonHovered = mouse_hit(element)
-            if buttonHovered and element.enabled then
+            if isButton and buttonHovered and element.enabled then
                 buttontext = "{\\c&HFFFFFF}" .. buttontext
 
                 local shadow_ass = assdraw.ass_new()
