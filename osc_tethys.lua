@@ -115,6 +115,10 @@ local tethys = {
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
 
     -- Colors (uses GGBBRR for some reason)
+    textColor = "FFFFFF",
+    buttonColor = "CCCCCC",
+    buttonHoveredColor = "FFFFFF",
+    windowButtonColor = "FFFFFF",
     seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
@@ -138,16 +142,17 @@ function genColorStyle(color)
     return "{\\c&H"..color.."&}"
 end
 local tethysStyle = {
-    button = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonH, tethys.osdSymbolFont),
-    smallButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.smallButtonSize, tethys.osdSymbolFont),
-    trackButton = ("{\\blur0\\bord0\\1c&HCCCCCC\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.trackButtonSize, tethys.osdSymbolFont),
+    button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
+    buttonHovered = genColorStyle(tethys.buttonHoveredColor),
+    smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
+    trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
     windowBar = "{\\1c&H000000}",
-    windowButton = ("{\\1c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.windowButtonSize, tethys.osdSymbolFont),
-    buttonTooltip = ("{\\blur0\\bord(1)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(tethys.buttonTooltipSize),
-    timecode = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.timecodeSize),
-    cacheText = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs(%d)}"):format(tethys.cacheTextSize, tethys.osdSymbolFont),
+    windowButton = ("{\\1c&H%s\\fs(%d)\\fn(%s)}"):format(tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.textColor, tethys.buttonTooltipSize),
+    timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
+    cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
     seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
-    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&HFFFFFF\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.seekbarTimestampSize),
+    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.textColor, tethys.seekbarTimestampSize),
     seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
     seekbarFg = genColorStyle(tethys.seekbarFgColor),
     seekbarBg = genColorStyle(tethys.seekbarBgColor),
@@ -932,7 +937,7 @@ function render_elements(master_ass)
             )
             local buttonHovered = mouse_hit(element)
             if isButton and buttonHovered and element.enabled then
-                buttontext = "{\\c&HFFFFFF}" .. buttontext
+                buttontext = tethysStyle.buttonHovered .. buttontext
 
                 local shadow_ass = assdraw.ass_new()
                 shadow_ass:merge(style_ass)
