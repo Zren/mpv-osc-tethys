@@ -1304,16 +1304,21 @@ function window_controls(topbar)
         title = title:gsub("\\n", " "):gsub("\\$", ""):gsub("{","\\{")
         return not (title == "") and title or "mpv"
     end
-    local left_pad = 5
-    local right_pad = 10
+    local vertPad = (wc_geo.h - tethys.windowTitleSize)/2
+    local leftPad = vertPad
+    local rightPad = vertPad * 2
     lo = add_layout("wctitle")
-    lo.geometry =
-        { x = titlebox_left + left_pad, y = wc_geo.y - 3, an = 1,
-          w = titlebox_w, h = wc_geo.h }
+    lo.geometry = {
+        x = titlebox_left + leftPad,
+        y = wc_geo.y - wc_geo.h/2,
+        an = 4, -- x,y is left-center
+        w = titlebox_w,
+        h = wc_geo.h,
+    }
     lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}",
         tethysStyle.windowTitle,
-        titlebox_left + left_pad, wc_geo.y - wc_geo.h,
-        titlebox_right - right_pad , wc_geo.y + wc_geo.h)
+        titlebox_left + leftPad, wc_geo.y - wc_geo.h,
+        titlebox_right - rightPad , wc_geo.y + wc_geo.h)
 
     add_area("window-controls-title",
              titlebox_left, 0, titlebox_right, wc_geo.h)
