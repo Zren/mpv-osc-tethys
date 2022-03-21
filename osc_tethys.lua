@@ -95,6 +95,12 @@ local osc_styles = {
 
 
 local tethys = {
+    -- Config
+    skipBy = 5, -- skipback/skipfrwd amount in seconds
+    skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
+    skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
+
+    -- Sizes
     seekbarHeight = 20,
     controlsHeight = 64,
     buttonTooltipSize = 20,
@@ -104,6 +110,8 @@ local tethys = {
     timecodeSize = 27,
     seekbarTimestampSize = 30,
     chapterTickSize = 6,
+
+    -- Misc
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
 
     -- Colors (uses GGBBRR for some reason)
@@ -2323,11 +2331,11 @@ function osc_init()
     ne.softrepeat = true
     ne.content = tethysIcon_skipback
     ne.eventresponder["mbtn_left_down"] =
-        function () mp.commandv("seek", -5, "relative", "keyframes") end
+        function () mp.commandv("seek", -tethys.skipBy, tethys.skipMode) end
     ne.eventresponder["shift+mbtn_left_down"] =
         function () mp.commandv("frame-back-step") end
     ne.eventresponder["mbtn_right_down"] =
-        function () mp.commandv("seek", -30, "relative", "keyframes") end
+        function () mp.commandv("seek", -tethys.skipByMore, tethys.skipMode) end
 
     --skipfrwd
     ne = new_element("skipfrwd", "button")
@@ -2335,11 +2343,11 @@ function osc_init()
     ne.softrepeat = true
     ne.content = tethysIcon_skipfrwd
     ne.eventresponder["mbtn_left_down"] =
-        function () mp.commandv("seek", 10, "relative", "keyframes") end
+        function () mp.commandv("seek", tethys.skipBy, tethys.skipMode) end
     ne.eventresponder["shift+mbtn_left_down"] =
         function () mp.commandv("frame-step") end
     ne.eventresponder["mbtn_right_down"] =
-        function () mp.commandv("seek", 60, "relative", "keyframes") end
+        function () mp.commandv("seek", tethys.skipByMore, tethys.skipMode) end
 
     --ch_prev
     ne = new_element("ch_prev", "button")
