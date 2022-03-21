@@ -111,7 +111,7 @@ local tethys = {
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
     seekbarCacheColor = "000000",
-    seekbarCacheAlpha = 128, -- 0..255
+    seekbarCacheAlpha = 128, -- 0 (opache) .. 255 (transparent)
     chapterTickColor = "CCCCCC",
 }
 tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
