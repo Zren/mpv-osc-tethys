@@ -111,6 +111,7 @@ local tethys = {
     timecodeSize = 27,
     seekbarTimestampSize = 30,
     chapterTickSize = 6,
+    windowTitleOutline = 1,
 
     -- Misc
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
@@ -121,7 +122,7 @@ local tethys = {
     buttonColor = "CCCCCC",
     buttonHoveredColor = "FFFFFF",
     windowBarColor = "000000",
-    windowBarAlpha = 80, -- (80 is mpv default) (255 morden default)
+    windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
     windowButtonColor = "FFFFFF",
     seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
@@ -171,8 +172,8 @@ local tethysStyle = {
     smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
     trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
     windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
-    windowButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
-    windowTitle = ("{\\1c&H%s\\fs(%d)\\q2}"):format(tethys.textColor, tethys.windowTitleSize),
+    windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
     buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.textColor, tethys.buttonTooltipSize),
     timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
@@ -1261,6 +1262,7 @@ function window_controls(topbar)
     lo = add_layout("close")
     lo.geometry = alignment == "left" and first_geo or third_geo
     lo.style = tethysStyle.windowButton
+    lo.alpha[3] = 0 -- show outline (aka border)
 
     -- Minimize: 🗕
     ne = new_element("minimize", "button")
@@ -1270,6 +1272,7 @@ function window_controls(topbar)
     lo = add_layout("minimize")
     lo.geometry = alignment == "left" and second_geo or first_geo
     lo.style = tethysStyle.windowButton
+    lo.alpha[3] = 0 -- show outline (aka border)
 
     -- Maximize: 🗖 /🗗
     ne = new_element("maximize", "button")
@@ -1289,6 +1292,7 @@ function window_controls(topbar)
     lo = add_layout("maximize")
     lo.geometry = alignment == "left" and third_geo or second_geo
     lo.style = tethysStyle.windowButton
+    lo.alpha[3] = 0 -- show outline (aka border)
 
     -- deadzone below window controls
     local sh_area_y0, sh_area_y1
@@ -1327,8 +1331,12 @@ function window_controls(topbar)
     }
     lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}",
         tethysStyle.windowTitle,
-        titlebox_left + leftPad, wc_geo.y - wc_geo.h,
-        titlebox_right - rightPad , wc_geo.y + wc_geo.h)
+        lo.geometry.x - tethys.windowTitleOutline,
+        wc_geo.y - wc_geo.h - tethys.windowTitleOutline,
+        titlebox_right - rightPad + tethys.windowTitleOutline,
+        wc_geo.y + tethys.windowTitleOutline
+    )
+    lo.alpha[3] = 0 -- show text outline (aka border)
 
     add_area("window-controls-title",
              titlebox_left, 0, titlebox_right, wc_geo.h)
