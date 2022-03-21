@@ -121,6 +121,8 @@ local tethys = {
     textColor = "FFFFFF",
     buttonColor = "CCCCCC",
     buttonHoveredColor = "FFFFFF",
+    buttonHoveredRectColor = "000000",
+    buttonHoveredRectAlpha = 255,
     windowBarColor = "000000",
     windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
     windowButtonColor = "CCCCCC",
@@ -144,6 +146,8 @@ tethys.windowControlsRect = {
 
 tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
 tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
+
+tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
 
 
 -- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
@@ -170,6 +174,7 @@ end
 local tethysStyle = {
     button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
     buttonHovered = genColorStyle(tethys.buttonHoveredColor),
+    buttonHoveredRect = ("{\\rDefault\\blur0\\bord0\\1c&H%s\\1a&H%X&}"):format(tethys.buttonHoveredRectColor, tethys.buttonHoveredRectAlpha),
     smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
     trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
     windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
@@ -968,6 +973,22 @@ function render_elements(master_ass)
             if isButton and buttonHovered and element.enabled then
                 buttontext = button_lo.hover_style .. buttontext
 
+                -- Hover BG Rect
+                if tethys.showButtonHoveredRect then
+                    local elem_geo = element.layout.geometry
+                    local bgrect_ass = assdraw.ass_new()
+                    bgrect_ass:merge(style_ass)
+                    bgrect_ass:append(tethysStyle.buttonHoveredRect)
+                    bgrect_ass:draw_start()
+                    bgrect_ass:round_rect_cw(
+                        0, 0, elem_geo.w, elem_geo.h,
+                        0, 0
+                    )
+                    bgrect_ass:draw_stop()
+                    master_ass:merge(bgrect_ass)
+                end
+
+                -- Hover Glow/Shadow
                 local shadow_ass = assdraw.ass_new()
                 shadow_ass:merge(style_ass)
                 shadow_ass:append("{\\blur5}" .. buttontext .. "{\\blur0}")
