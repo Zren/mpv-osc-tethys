@@ -106,6 +106,7 @@ local tethys = {
     buttonTooltipSize = 20,
     windowBarHeight = 44,
     windowButtonSize = 44,
+    windowTitleSize = 24,
     cacheTextSize = 20,
     timecodeSize = 27,
     seekbarTimestampSize = 30,
@@ -115,15 +116,18 @@ local tethys = {
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
 
     -- Colors (uses GGBBRR for some reason)
+    -- Alpha ranges 0 (opache) .. 255 (transparent)
     textColor = "FFFFFF",
     buttonColor = "CCCCCC",
     buttonHoveredColor = "FFFFFF",
+    windowBarColor = "000000",
+    windowBarAlpha = 80, -- (80 is mpv default) (255 morden default)
     windowButtonColor = "FFFFFF",
     seekbarHandleColor = "FFFFFF",
     seekbarFgColor = "483DD7", -- #d73d48
     seekbarBgColor = "929292",
     seekbarCacheColor = "000000",
-    seekbarCacheAlpha = 128, -- 0 (opache) .. 255 (transparent)
+    seekbarCacheAlpha = 128,
     chapterTickColor = "CCCCCC",
 }
 tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
@@ -135,19 +139,30 @@ tethys.windowControlsRect = {
     w = tethys.windowButtonSize * 3,
     h = tethys.windowBarHeight,
 }
+
+tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
 tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
 
 
+-- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
 function genColorStyle(color)
-    return "{\\c&H"..color.."&}"
+    return "{\\c&H"..color.."&}" -- Not sure why &H...& is used in santa_hat_lines
+    -- return "{\\c("..color..")}" -- Works
+    -- return "{\\c(#"..color..")}" -- Only works for paths, and breaks other stuff.
 end
+
+-- Not sure why \\1c is rect fill color. Here's docs for \3c:
+-- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
+-- "{\\1c&H"..color.."}"
+-- No idea what \\q2 is in windowTitle
 local tethysStyle = {
     button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
     buttonHovered = genColorStyle(tethys.buttonHoveredColor),
     smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
     trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
-    windowBar = "{\\1c&H000000}",
-    windowButton = ("{\\1c&H%s\\fs(%d)\\fn(%s)}"):format(tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
+    windowButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    windowTitle = ("{\\1c&H%s\\fs(%d)\\q2}"):format(tethys.textColor, tethys.windowTitleSize),
     buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.textColor, tethys.buttonTooltipSize),
     timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
@@ -1197,7 +1212,7 @@ function window_controls(topbar)
     lo.geometry = wc_geo
     lo.layer = 10
     lo.style = tethysStyle.windowBar
-    lo.alpha[1] = user_opts.boxalpha
+    lo.alpha = tethys.windowBarAlphaTable
 
     local button_y = wc_geo.y - (wc_geo.h / 2)
     local first_geo = {
@@ -1296,7 +1311,7 @@ function window_controls(topbar)
         { x = titlebox_left + left_pad, y = wc_geo.y - 3, an = 1,
           w = titlebox_w, h = wc_geo.h }
     lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}",
-        osc_styles.wcTitle,
+        tethysStyle.windowTitle,
         titlebox_left + left_pad, wc_geo.y - wc_geo.h,
         titlebox_right - right_pad , wc_geo.y + wc_geo.h)
 
