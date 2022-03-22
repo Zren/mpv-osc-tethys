@@ -8,7 +8,7 @@
    version="1.1"
    id="svg947"
    inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
-   sodipodi:docname="tethys_play_optimized4.svg"
+   sodipodi:docname="tethys_play.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -25,8 +25,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="8"
-     inkscape:cx="23.5"
-     inkscape:cy="38.5"
+     inkscape:cx="14.75"
+     inkscape:cy="31.5"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
      inkscape:window-x="0"
@@ -56,7 +56,7 @@
        style="display:none;image-rendering:pixelated" />
     <path
        style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00776113;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-       d="m 37.733335,17.599999 c 4.347866,3.010065 4.347866,4.32327 0,7.333334 C 23.01367,35.123867 9.8666667,44 6.9333329,44 4,44 4,39.6 4,21.266665 4,4.4 4,0 6.9333329,0 9.8666667,0 23.01367,7.4094621 37.733335,17.599999 Z"
+       d="m 33.733335,17.599999 c 4.347866,3.010065 4.347866,4.32327 0,7.333334 C 19.01367,35.123867 5.8666667,44 2.9333329,44 0,44 0,39.6 0,21.266665 0,4.4 0,0 2.9333329,0 5.8666667,0 19.01367,7.4094621 33.733335,17.599999 Z"
        id="path5673"
        sodipodi:nodetypes="ssscss" />
   </g>
