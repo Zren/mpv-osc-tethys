@@ -1005,12 +1005,18 @@ function render_elements(master_ass)
             if buttonHovered and (not (button_lo.tooltip == nil)) then
                 local tx = button_lo.tooltip_geo.x
                 local ty = button_lo.tooltip_geo.y
-                local tooltipAlpha =  {[1] = 0, [2] = 255, [3] = 88, [4] = 255}
+                local tooltipAlpha =  {[1] = 0, [2] = 255, [3] = 88, [4] = 255} -- Opache Text, 65% opacity outlines
                 local labelList = {}
-                if type(button_lo.tooltip) == "string" then
-                    labelList = { button_lo.tooltip }
-                elseif type(button_lo.tooltip) == "table" then
+                if type(button_lo.tooltip) == "function" then
+                    labelList = button_lo.tooltip()
+                else
                     labelList = button_lo.tooltip
+                end
+                if type(labelList) == "string" then
+                    labelList = { labelList }
+                end
+                if not (type(labelList) == "table") then
+                    labelList = {}
                 end
                 for i, label in ipairs(labelList) do
                     new_ass_node(elem_ass)
@@ -1875,6 +1881,49 @@ layouts["topbar"] = function()
     bar_layout(1)
 end
 
+function getDeltaChapter(delta)
+    local pos = mp.get_property_number('chapter', 0) + 1
+    local count, limlist = limited_list('chapter-list', pos)
+    if count == 0 then
+        return nil
+    end
+
+    local curIndex = -1
+    for i, v in ipairs(limlist) do
+        if v.current then
+            curIndex = i
+            break
+        end
+    end
+
+    local deltaIndex = curIndex + delta
+    if curIndex == -1 then
+        return nil
+    elseif deltaIndex < 1 then
+        deltaIndex = 1
+    elseif deltaIndex > count then
+        deltaIndex = count
+    end
+
+    local nextChapter = limlist[deltaIndex]
+    if nextChapter == nil then -- Video Done
+        return nil
+    end
+    nextChapter = {
+        index = deltaIndex,
+        time = nextChapter.time,
+        title = nextChapter.title,
+        label = nil,
+    }
+    local label = nextChapter.title
+    if label == nil then
+        label = string.format('Chapter %02d', nextChapter.index)
+    end
+    -- local time = mp.format_time(nextChapter.time)
+    -- nextChapter.label = string.format('[%s] %s', time, label)
+    nextChapter.label = label
+    return nextChapter
+end
 
 layouts["tethys"] = function()
     local direction = -1
@@ -2043,7 +2092,15 @@ layouts["tethys"] = function()
     lo = add_layout("ch_prev")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Prev Chapter (PgDn)")
+    setButtonTooltip(lo, function()
+        local shortcutLabel = "Prev Chapter (PgDn)"
+        local prevChapter = getDeltaChapter(-1)
+        if prevChapter == nil then
+            return { shortcutLabel }
+        else
+            return { prevChapter.label, shortcutLabel }
+        end
+    end)
     if elements["ch_prev"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
     end
@@ -2059,7 +2116,15 @@ layouts["tethys"] = function()
     lo = add_layout("ch_next")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Next Chapter (PgUp)")
+    setButtonTooltip(lo, function()
+        local shortcutLabel = "Next Chapter (PgUp)"
+        local nextChapter = getDeltaChapter(1)
+        if nextChapter == nil then
+            return { shortcutLabel }
+        else
+            return { nextChapter.label, shortcutLabel }
+        end
+    end)
     if elements["ch_next"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
     end
