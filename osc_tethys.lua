@@ -123,6 +123,7 @@ local tethys = {
     buttonHoveredColor = "FFFFFF",
     buttonHoveredRectColor = "000000",
     buttonHoveredRectAlpha = 255, -- Easily debug button geometry by setting to 80
+    tooltipColor = "CCCCCC",
     windowBarColor = "000000",
     windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
     windowButtonColor = "CCCCCC",
@@ -181,11 +182,12 @@ local tethysStyle = {
     windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
     closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
     windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
-    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.textColor, tethys.buttonTooltipSize),
+    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.tooltipColor, tethys.buttonTooltipSize),
     timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
     seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
     seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.textColor, tethys.seekbarTimestampSize),
+    text = genColorStyle(tethys.textColor),
     seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
     seekbarFg = genColorStyle(tethys.seekbarFgColor),
     seekbarBg = genColorStyle(tethys.seekbarBgColor),
@@ -2098,7 +2100,7 @@ layouts["tethys"] = function()
         if prevChapter == nil then
             return { shortcutLabel }
         else
-            return { prevChapter.label, shortcutLabel }
+            return { tethysStyle.text..prevChapter.label, shortcutLabel }
         end
     end)
     if elements["ch_prev"].visible then
@@ -2122,7 +2124,7 @@ layouts["tethys"] = function()
         if nextChapter == nil then
             return { shortcutLabel }
         else
-            return { nextChapter.label, shortcutLabel }
+            return { tethysStyle.text..nextChapter.label, shortcutLabel }
         end
     end)
     if elements["ch_next"].visible then
