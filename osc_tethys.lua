@@ -1249,25 +1249,27 @@ function window_controls(topbar)
     lo.style = tethysStyle.windowBar
     lo.alpha = tethys.windowBarAlphaTable
 
-    local button_y = wc_geo.y - (wc_geo.h / 2)
+    local winControlsX = controlbox_left + windowBarSpacing + tethys.windowButtonSize/2
+    local winControlsY = wc_geo.y - (wc_geo.h / 2)
+    local winControlsAlignment = 5 -- x,y is center
     local first_geo = {
-        x = controlbox_left + windowBarSpacing + tethys.windowButtonSize*0,
-        y = button_y,
-        an = 4, -- x,y is left-center
+        x = winControlsX + tethys.windowButtonSize*0,
+        y = winControlsY,
+        an = winControlsAlignment,
         w = tethys.windowButtonSize,
         h = tethys.windowButtonSize,
     }
     local second_geo = {
-        x = controlbox_left + windowBarSpacing + tethys.windowButtonSize*1,
-        y = button_y,
-        an = 4, -- x,y is left-center
+        x = winControlsX + tethys.windowButtonSize*1,
+        y = winControlsY,
+        an = winControlsAlignment,
         w = tethys.windowButtonSize,
         h = tethys.windowButtonSize,
     }
     local third_geo = {
-        x = controlbox_left + windowBarSpacing + tethys.windowButtonSize*2,
-        y = button_y,
-        an = 4, -- x,y is left-center
+        x = winControlsX + tethys.windowButtonSize*2,
+        y = winControlsY,
+        an = winControlsAlignment,
         w = tethys.windowButtonSize,
         h = tethys.windowButtonSize,
     }
