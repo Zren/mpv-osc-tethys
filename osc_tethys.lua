@@ -242,6 +242,10 @@ local is_december = os.date("*t").month == 12
 -- 44x44
 local tethysIcon_play = "{\\p1}m 33.733335 17.599999   b 38.081201 20.610064 38.081201 21.923269 33.733335 24.933333   b 19.01367 35.123867 5.866667 44 2.933333 44   b 0 44 0 39.6 0 21.266665   b 0 4.4 0 0 2.933333 0   b 5.866667 0 19.01367 7.409462 33.733335 17.599999{\\p0}"
 local tethysIcon_pause = "{\\p1}m 13 40.2064   b 13 45.263808 0 45.263808 0 40.2107   l 0 3.793057   b 0 -1.264352 13 -1.264352 13 3.793057   m 35 40.2064   b 35 45.263808 22 45.263808 22 40.2107   l 22 3.793057   b 22 -1.264352 35 -1.264352 35 3.793057{\\p0}"
+local mpvOsdIcon_close = "{\\p1}m 24 24   l 20.571428 24   l 12 15.535715   l 3.535714 24   l 0 24   l 0 20.571428   l 8.464286 12   l 0 3.535714   l 0 0   l 3.535714 0   l 12 8.464286   l 20.571428 0   l 24 0   l 24 3.535714   l 15.535715 12   l 24 20.464285{\\p0}"
+local mpvOsdIcon_maximize = "{\\p1}m 24 22   l 0 22   l 0 0   l 24 0   m 22 20   l 22 4   l 2 4   l 2 20{\\p0}"
+local mpvOsdIcon_minimize = "{\\p1}m 24 6   l 0 6   l 0 0   l 24 0{\\p0}"
+local mpvOsdIcon_restore = "{\\p1}m 24 14   l 17.999999 14   l 17.999999 22   l 0 22   l 0 7.999999   l 6 7.999999   l 6 0   l 24 0   m 22 12.000001   l 22 4   l 8 4   l 8 7.999999   l 17.999999 7.999999   l 17.999999 12.000001   m 16 20   l 16 12.000001   l 2 12.000001   l 2 20{\\p0}"
 
 -- 28x28
 local tethysIcon_skipback = "{\\p1}m 1.839456 0   l 1.839456 9.57764   l 11.417097 9.57764   l 11.417097 6.385093   l 7.490845 6.385093   b 10.868156 3.999689 15.42108 3.879191 18.959903 6.243757   b 22.988882 8.935835 24.547191 14.07368 22.692854 18.550442   b 20.838519 23.027205 16.103091 25.558703 11.350584 24.613371   b 6.598078 23.668038 3.192547 19.515531 3.192547 14.669918   l 0 14.669918   b 0 21.018992 4.499961 26.50492 10.72704 27.743563   b 16.954119 28.982206 23.212534 25.638369 25.642219 19.772589   b 28.071904 13.906809 26.01191 7.114815 20.732848 3.587458   b 18.093317 1.82378 15.008396 1.117148 12.021934 1.411289   b 9.514609 1.658238 7.077971 2.61433 5.032002 4.24218   l 5.032002 0{\\p0}"
@@ -1282,7 +1286,7 @@ function window_controls(topbar)
 
     -- Close: 🗙
     ne = new_element("close", "button")
-    ne.content = "\238\132\149"
+    ne.content = mpvOsdIcon_close
     ne.eventresponder["mbtn_left_up"] =
         function () mp.commandv("quit") end
     lo = add_layout("close")
@@ -1293,7 +1297,7 @@ function window_controls(topbar)
 
     -- Minimize: 🗕
     ne = new_element("minimize", "button")
-    ne.content = "\238\132\146"
+    ne.content = mpvOsdIcon_minimize
     ne.eventresponder["mbtn_left_up"] =
         function () mp.commandv("cycle", "window-minimized") end
     lo = add_layout("minimize")
@@ -1304,9 +1308,9 @@ function window_controls(topbar)
     -- Maximize: 🗖 /🗗
     ne = new_element("maximize", "button")
     if state.maximized or state.fullscreen then
-        ne.content = "\238\132\148"
+        ne.content = mpvOsdIcon_restore
     else
-        ne.content = "\238\132\147"
+        ne.content = mpvOsdIcon_maximize
     end
     ne.eventresponder["mbtn_left_up"] =
         function ()
