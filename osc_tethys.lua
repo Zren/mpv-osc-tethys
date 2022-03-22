@@ -1883,9 +1883,9 @@ layouts["topbar"] = function()
     bar_layout(1)
 end
 
-function getDeltaChapter(delta)
-    local pos = mp.get_property_number('chapter', 0) + 1
-    local count, limlist = limited_list('chapter-list', pos)
+function getDeltaListItem(listKey, curKey, delta, clamp)
+    local pos = mp.get_property_number(curKey, 0) + 1
+    local count, limlist = limited_list(listKey, pos)
     if count == 0 then
         return nil
     end
@@ -1902,29 +1902,62 @@ function getDeltaChapter(delta)
     if curIndex == -1 then
         return nil
     elseif deltaIndex < 1 then
-        deltaIndex = 1
+        if clamp then
+            deltaIndex = 1
+        else
+            return nil
+        end
     elseif deltaIndex > count then
-        deltaIndex = count
+        if clamp then
+            deltaIndex = count
+        else
+            return nil
+        end
     end
 
-    local nextChapter = limlist[deltaIndex]
-    if nextChapter == nil then -- Video Done
+    local deltaItem = limlist[deltaIndex]
+    return deltaIndex, deltaItem
+end
+
+function getDeltaChapter(delta)
+    local deltaIndex, deltaChapter = getDeltaListItem('chapter-list', 'chapter', delta, true)
+    if deltaChapter == nil then -- Video Done
         return nil
     end
-    nextChapter = {
+    deltaChapter = {
         index = deltaIndex,
-        time = nextChapter.time,
-        title = nextChapter.title,
+        time = deltaChapter.time,
+        title = deltaChapter.title,
         label = nil,
     }
-    local label = nextChapter.title
+    local label = deltaChapter.title
     if label == nil then
-        label = string.format('Chapter %02d', nextChapter.index)
+        label = string.format('Chapter %02d', deltaChapter.index)
     end
-    -- local time = mp.format_time(nextChapter.time)
-    -- nextChapter.label = string.format('[%s] %s', time, label)
-    nextChapter.label = label
-    return nextChapter
+    -- local time = mp.format_time(deltaChapter.time)
+    -- deltaChapter.label = string.format('[%s] %s', time, label)
+    deltaChapter.label = label
+    return deltaChapter
+end
+
+function getDeltaPlaylistItem(delta)
+    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', delta, false)
+    if deltaItem == nil then -- Video Done
+        return nil
+    end
+    deltaItem = {
+        index = deltaIndex,
+        filename = deltaItem.filename,
+        title = deltaItem.title,
+        label = nil,
+    }
+    local label = deltaItem.title
+    if label == nil then
+        local _, filename = utils.split_path(deltaItem.filename)
+        label = filename
+    end
+    deltaItem.label = label
+    return deltaItem
 end
 
 layouts["tethys"] = function()
@@ -2216,7 +2249,15 @@ layouts["tethys"] = function()
     lo = add_layout("pl_next")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, {"Next (>)", "Next (Enter)"})
+    setButtonTooltip(lo, function()
+        local shortcutLabel = "Next (> or Enter)"
+        local nextItem = getDeltaPlaylistItem(1)
+        if nextItem == nil then
+            return { shortcutLabel }
+        else
+            return { tethysStyle.text..nextItem.label, shortcutLabel }
+        end
+    end)
     if elements["pl_next"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -2232,7 +2273,15 @@ layouts["tethys"] = function()
     lo = add_layout("pl_prev")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Previous (<)")
+    setButtonTooltip(lo, function()
+        local shortcutLabel = "Previous (<)"
+        local nextItem = getDeltaPlaylistItem(-1)
+        if nextItem == nil then
+            return { shortcutLabel }
+        else
+            return { tethysStyle.text..nextItem.label, shortcutLabel }
+        end
+    end)
     if elements["pl_prev"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
