@@ -195,6 +195,216 @@ local tethysStyle = {
     chapterTick = genColorStyle(tethys.chapterTickColor),
 }
 
+----- Thumbnail
+-- Based on: https://github.com/TheAMM/mpv_thumbnail_script
+ON_WINDOWS = (package.config:sub(1,1) ~= '/')
+function is_absolute_path( path )
+  local tmp, is_win  = path:gsub("^[A-Z]:\\", "")
+  local tmp, is_unix = path:gsub("^/", "")
+  return (is_win > 0) or (is_unix > 0)
+end
+function join_paths(...)
+  local sep = ON_WINDOWS and "\\" or "/"
+  local result = "";
+  for i, p in pairs({...}) do
+    if p ~= "" then
+      if is_absolute_path(p) then
+        result = p
+      else
+        result = (result ~= "") and (result:gsub("[\\"..sep.."]*$", "") .. sep .. p) or p
+      end
+    end
+  end
+  return result:gsub("[\\"..sep.."]*$", "")
+end
+
+local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
+local thumb = {
+    showThumb = false,
+    overlayId = 1,
+    width = 320,
+    height = 180,
+    dirPath = join_paths(osCacheDir, "mpv_tethys"),
+    thumbPath = join_paths(osCacheDir, "mpv_tethys/thumb.gbra"),
+    playlistPath = join_paths(osCacheDir, "mpv_tethys/playlist-%06d.gbra"),
+}
+local thumbState = {
+    thumbVisible = false,
+    thumbPos = 0,
+}
+
+function thumbInit()
+    -- Check if the thumbnail already exists and is the correct size
+    local thumbFile = io.open(thumb.dirPath, "rb")
+    if thumbFile == nil then
+        os.execute("mkdir " .. thumb.dirPath)
+    end
+end
+
+function hideThumbnail()
+    -- https://mpv.io/manual/master/#command-interface-overlay-remove
+    msg.warn("hideThumbnail")
+    mp.command_native({
+        "overlay-remove", thumb.overlayId,
+    })
+end
+
+-- From: Slider.tooltipF(pos)
+function formatTimestamp(percent)
+    local duration = mp.get_property_number("duration", nil)
+    if not ((duration == nil) or (percent == nil)) then
+        local sec = duration * (percent / 100)
+        return mp.format_time(sec)
+    else
+        return ""
+    end
+end
+function renderThumbnailTooltip(pos, sliderPos, ass)
+    local tooltipBgColor = "000000"
+    local tooltipBgAlpha = 80
+    local tooltipPadding = 5
+
+    local videoPath = mp.get_property_native("path", nil)
+    local videoDuration = mp.get_property_number("duration", nil)
+    msg.warn("sliderPos", sliderPos, "videoDuration", videoDuration, "videoPath", videoPath)
+    if (videoPath == nil) or (videoDuration == nil) or (sliderPos == nil) then
+        return
+    end
+    local thumbTime = videoDuration * (sliderPos / 100)
+    local thumbTimestamp = mp.format_time(thumbTime) -- ffmpeg requires "HH:MM:SS.zzz" for seeking
+    local timestampLabel = thumbTimestamp
+    msg.warn("thumbTime", thumbTime, "timestampLabel", timestampLabel)
+
+    ---- Geometry
+    local scaleX, scaleY = get_virt_scale_factor()
+    local videoDecParams = mp.get_property_native("video-dec-params")
+    local videoWidth = videoDecParams.dw
+    local videoHeight = videoDecParams.dh
+    if not (videoWidth and videoHeight) then
+        return
+    end
+    local thumbWidth, thumbHeight
+    if videoWidth > videoHeight then
+        thumbWidth = thumb.width
+        thumbHeight = math.floor(videoHeight * thumb.width / videoWidth)
+    else
+        thumbWidth = math.floor(videoWidth * thumb.height / videoHeight)
+        thumbHeight = thumb.height
+    end
+
+    local thumbGlobalWidth = math.floor(thumbWidth / scaleX)
+    local thumbGlobalHeight = math.floor(thumbHeight / scaleY)
+    msg.warn("thumbWidth", thumbWidth, "thumbHeight", thumbHeight, "thumbGlobalWidth", thumbGlobalWidth, "thumbGlobalHeight", thumbGlobalHeight)
+
+    local chapter = getDeltaChapter(0)
+    local hasChapter = not (chapter == nil)
+    local chapterLabel = ""
+    local chapterHeight = 0
+    if hasChapter then
+        chapterHeight = tethys.seekbarTimestampSize
+        chapterLabel = "Chapter Placeholder"
+        -- chapterLabel = chapter.label
+    end
+
+    local timestampHeight = tethys.seekbarTimestampSize
+
+    local tooltipWidth = thumbWidth + tooltipPadding*2
+    local tooltipHeight = thumbHeight + chapterHeight + timestampHeight + tooltipPadding*2
+
+    -- Note: pos x,y is an=2 (bottom-center)
+    local tooltipX = math.floor(pos.x - tooltipWidth/2)
+    local tooltipY = math.floor(pos.y - tooltipHeight)
+
+    local thumbX = tooltipX + tooltipPadding
+    local thumbY = tooltipY + tooltipPadding
+    local thumbGlobalX = math.floor(thumbX / scaleX)
+    local thumbGlobalY = math.floor(thumbY / scaleY)
+    msg.warn("thumbX", thumbX, "thumbY", thumbY, "thumbGlobalX", thumbGlobalX, "thumbGlobalY", thumbGlobalY)
+
+
+    local chapterAn = 5 -- x,y is center
+    local chapterX = thumbX + math.floor(thumbWidth/2)
+    local chapterY = thumbY + thumbHeight + math.floor(chapterHeight/2)
+
+    local timestampAn = 5 -- x,y is center
+    local timestampX = thumbX + math.floor(thumbWidth/2)
+    local timestampY = thumbY + thumbHeight + chapterHeight + math.floor(timestampHeight/2)
+
+    ---- Tooltip BG
+    ass:new_event()
+    ass:pos(tooltipX, tooltipY)
+    ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, tooltipBgAlpha))
+    ass:draw_start()
+    ass:rect_cw(0, 0, tooltipWidth, tooltipHeight)
+    ass:draw_stop()
+
+    ---- Thumb BG
+    ass:new_event()
+    ass:pos(thumbX, thumbY)
+    ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, 0))
+    ass:draw_start()
+    ass:rect_cw(0, 0, thumbWidth, thumbHeight)
+    ass:draw_stop()
+
+    ---- Chapter
+    if hasChapter then
+        ass:new_event()
+        ass:pos(chapterX, chapterY)
+        ass:an(chapterAn)
+        ass:append(tethysStyle.seekbarTimestamp)
+        ass:append(chapterLabel)
+    end
+
+    ---- Timestamp
+    ass:new_event()
+    ass:pos(timestampX, timestampY)
+    ass:an(timestampAn)
+    ass:append(tethysStyle.seekbarTimestamp)
+    ass:append(timestampLabel)
+
+    thumbState.thumbVisible = true
+    local thumbChanged = not (thumbState.thumbPos == sliderPos)
+    if thumbChanged then
+        thumbState.thumbPos = sliderPos
+
+        if thumb.showThumb then
+            ---- Generate Thumbnail
+            local ffmpegCommand = {
+                "ffmpeg",
+                "-loglevel", "quiet",
+                "-noaccurate_seek",
+                "-ss", thumbTimestamp,
+                "-i", videoPath,
+
+                "-frames:v", "1",
+                "-an",
+
+                "-vf", ("scale=%d:%d"):format(thumbGlobalWidth, thumbGlobalHeight),
+                "-c:v", "rawvideo",
+                "-pix_fmt", "bgra",
+                "-f", "rawvideo",
+
+                "-y", thumb.thumbPath,
+            }
+            msg.warn(table.concat(ffmpegCommand, " "))
+            utils.subprocess({args=ffmpegCommand})
+
+            ---- Render Thumbnail
+            -- https://mpv.io/manual/master/#command-interface-overlay-add
+            mp.command_native({
+                "overlay-add", thumb.overlayId,
+                thumbGlobalX, thumbGlobalY,
+                thumb.thumbPath,
+                0, -- byte offset
+                "bgra", -- image format
+                thumbGlobalWidth, thumbGlobalHeight,
+                thumbGlobalWidth * 4, -- "stride"
+            })
+        end
+    end
+end
+
+
 -- internal states, do not touch
 local state = {
     showtime,                               -- time of last invocation (last mouse move)
@@ -904,8 +1114,8 @@ function render_elements(master_ass)
             if not (element.slider.tooltipF == nil) then
 
                 if mouse_hit(element) then
-                    local sliderpos = get_slider_value(element)
-                    local tooltiplabel = element.slider.tooltipF(sliderpos)
+                    local sliderPos = get_slider_value(element)
+                    local tooltipLabel = element.slider.tooltipF(sliderPos)
 
                     local an = slider_lo.tooltip_an
 
@@ -920,12 +1130,12 @@ function render_elements(master_ass)
                     local tx = get_virt_mouse_pos()
                     if (slider_lo.adjust_tooltip) then
                         if (an == 2) then
-                            if (sliderpos < (s_min + 3)) then
+                            if (sliderPos < (s_min + 3)) then
                                 an = an - 1
-                            elseif (sliderpos > (s_max - 3)) then
+                            elseif (sliderPos > (s_max - 3)) then
                                 an = an + 1
                             end
-                        elseif (sliderpos > (s_max-s_min)/2) then
+                        elseif (sliderPos > (s_max-s_min)/2) then
                             an = an + 1
                             tx = tx - 5
                         else
@@ -935,12 +1145,24 @@ function render_elements(master_ass)
                     end
 
                     -- tooltip label
-                    elem_ass:new_event()
-                    elem_ass:pos(tx, ty)
-                    elem_ass:an(an)
-                    elem_ass:append(slider_lo.tooltip_style)
-                    ass_append_alpha(elem_ass, slider_lo.alpha, 0)
-                    elem_ass:append(tooltiplabel)
+                    -- elem_ass:new_event()
+                    -- elem_ass:pos(tx, ty)
+                    -- elem_ass:an(an)
+                    -- elem_ass:append(slider_lo.tooltip_style)
+                    -- ass_append_alpha(elem_ass, slider_lo.alpha, 0)
+                    -- elem_ass:append(tooltipLabel)
+
+                    -- thumbnail
+                    -- https://github.com/TheAMM/mpv_thumbnail_script
+                    -- display_thumbnail({x=get_virt_mouse_pos(), y=ty, a=an}, sliderPos, elem_ass)
+                    -- function display_thumbnail(pos, value, ass)
+                    local thumbPos = {
+                        x=get_virt_mouse_pos(),
+                        -- x=mp.get_mouse_pos(),
+                        y=ty,
+                        an=2, -- x,y is bottom-center
+                    }
+                    renderThumbnailTooltip(thumbPos, sliderPos, elem_ass)
 
                 end
             end
@@ -2850,6 +3072,8 @@ function osc_init()
     ne.eventresponder["wheel_down_press"] =
         function () mp.commandv("osd-auto", "add", "volume", -5) end
 
+    -- thumbnails
+    thumbInit()
 
     -- load layout
     layouts[user_opts.layout]()
@@ -3180,9 +3404,18 @@ function render()
     -- Messages
     render_message(ass)
 
+    -- Thumbnail (PreRender)
+    local thumbWasVisible = thumbState.thumbVisible
+    thumbState.thumbVisible = false
+
     -- actual OSC
     if state.osc_visible then
         render_elements(ass)
+    end
+
+    -- Thumbnail (PostRender)
+    if not thumbState.thumbVisible and thumbWasVisible then
+        hideThumbnail()
     end
 
     -- submit
