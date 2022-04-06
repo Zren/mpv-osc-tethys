@@ -219,18 +219,27 @@ function join_paths(...)
 end
 
 local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
+local hasFfmpeg = true -- Hardcoded assumption
 local thumb = {
-    showThumb = false,
+    showThumb = true,
     overlayId = 1,
-    width = 320,
-    height = 180,
+    width = 256,
+    height = 144,
+    debounce = 0.15, -- Wait 150ms before rendering Thumbnail
     dirPath = join_paths(osCacheDir, "mpv_tethys"),
     thumbPath = join_paths(osCacheDir, "mpv_tethys/thumb.gbra"),
     playlistPath = join_paths(osCacheDir, "mpv_tethys/playlist-%06d.gbra"),
 }
 local thumbState = {
     thumbVisible = false,
-    thumbPos = 0,
+    tooltipPos = nil,
+    rendered = false,
+    renderedPos = nil,
+    renderAt = nil,
+    videoPath = nil,
+    thumbTimestamp = nil,
+    thumbGlobalWidth = nil,
+    thumbGlobalHeight = nil,
 }
 
 function thumbInit()
@@ -241,12 +250,28 @@ function thumbInit()
     end
 end
 
+function canShowThumb(videoPath)
+    if not hasFfmpeg then
+        return false
+    end
+
+    local isRemote = videoPath:find("://") ~= nil
+    if isRemote then
+        return false
+    end
+
+    return true
+end
+
 function hideThumbnail()
     -- https://mpv.io/manual/master/#command-interface-overlay-remove
-    msg.warn("hideThumbnail")
+    -- msg.warn("hideThumbnail")
     mp.command_native({
         "overlay-remove", thumb.overlayId,
     })
+    thumbState.rendered = false
+    thumbState.renderedPos = nil
+    thumbState.renderRequested = false
 end
 
 -- From: Slider.tooltipF(pos)
@@ -260,20 +285,20 @@ function formatTimestamp(percent)
     end
 end
 function renderThumbnailTooltip(pos, sliderPos, ass)
-    local tooltipBgColor = "000000"
+    local tooltipBgColor = "FFFFFF"
     local tooltipBgAlpha = 80
-    local tooltipPadding = 5
+    local thumbOutline = 3
 
     local videoPath = mp.get_property_native("path", nil)
     local videoDuration = mp.get_property_number("duration", nil)
-    msg.warn("sliderPos", sliderPos, "videoDuration", videoDuration, "videoPath", videoPath)
+    -- msg.warn("sliderPos", sliderPos, "videoDuration", videoDuration, "videoPath", videoPath)
     if (videoPath == nil) or (videoDuration == nil) or (sliderPos == nil) then
         return
     end
     local thumbTime = videoDuration * (sliderPos / 100)
     local thumbTimestamp = mp.format_time(thumbTime) -- ffmpeg requires "HH:MM:SS.zzz" for seeking
     local timestampLabel = thumbTimestamp
-    msg.warn("thumbTime", thumbTime, "timestampLabel", timestampLabel)
+    -- msg.warn("thumbTime", thumbTime, "timestampLabel", timestampLabel)
 
     ---- Geometry
     local scaleX, scaleY = get_virt_scale_factor()
@@ -294,57 +319,62 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
 
     local thumbGlobalWidth = math.floor(thumbWidth / scaleX)
     local thumbGlobalHeight = math.floor(thumbHeight / scaleY)
-    msg.warn("thumbWidth", thumbWidth, "thumbHeight", thumbHeight, "thumbGlobalWidth", thumbGlobalWidth, "thumbGlobalHeight", thumbGlobalHeight)
+    -- msg.warn("thumbWidth", thumbWidth, "thumbHeight", thumbHeight, "thumbGlobalWidth", thumbGlobalWidth, "thumbGlobalHeight", thumbGlobalHeight)
 
-    local chapter = getDeltaChapter(0)
-    local hasChapter = not (chapter == nil)
+    local chapter = get_chapter(thumbTime)
+    local hasChapter = not (chapter == nil) and chapter.title and chapter.title ~= ""
     local chapterLabel = ""
     local chapterHeight = 0
     if hasChapter then
         chapterHeight = tethys.seekbarTimestampSize
-        chapterLabel = "Chapter Placeholder"
-        -- chapterLabel = chapter.label
+        chapterLabel = chapter.title
     end
 
+    local timestampWidth = thumbWidth
     local timestampHeight = tethys.seekbarTimestampSize
 
-    local tooltipWidth = thumbWidth + tooltipPadding*2
-    local tooltipHeight = thumbHeight + chapterHeight + timestampHeight + tooltipPadding*2
+    local bgHeight = thumbOutline + thumbHeight + thumbOutline
+
+    local tooltipWidth = thumbOutline + thumbWidth + thumbOutline
+    local tooltipHeight = bgHeight + chapterHeight + timestampHeight
+
 
     -- Note: pos x,y is an=2 (bottom-center)
+    local windowWidth = osc_param.playresx
     local tooltipX = math.floor(pos.x - tooltipWidth/2)
     local tooltipY = math.floor(pos.y - tooltipHeight)
+    local textAn = 5 -- x,y is center
+    local isLongChapter
+    if tooltipX < 0 then
+        tooltipX = 0
+        textAn = 4 -- x,y is left-center
+    elseif windowWidth - tooltipWidth < tooltipX then
+        tooltipX = windowWidth - tooltipWidth
+        textAn = 6 -- x,y is right-center
+    end
 
-    local thumbX = tooltipX + tooltipPadding
-    local thumbY = tooltipY + tooltipPadding
+    local thumbX = tooltipX + thumbOutline
+    local thumbY = tooltipY + thumbOutline
     local thumbGlobalX = math.floor(thumbX / scaleX)
     local thumbGlobalY = math.floor(thumbY / scaleY)
-    msg.warn("thumbX", thumbX, "thumbY", thumbY, "thumbGlobalX", thumbGlobalX, "thumbGlobalY", thumbGlobalY)
+    -- msg.warn("thumbX", thumbX, "thumbY", thumbY, "thumbGlobalX", thumbGlobalX, "thumbGlobalY", thumbGlobalY)
 
 
-    local chapterAn = 5 -- x,y is center
-    local chapterX = thumbX + math.floor(thumbWidth/2)
+    local longChapterTitle = chapterLabel:len() >= 30
+    local chapterAn = longChapterTitle and textAn or 5 -- x,y is center
+    local chapterX
+    if chapterAn == 4 then -- Left-Center
+        chapterX = thumbX
+    elseif chapterAn == 6 then -- Right-Center
+        chapterX = thumbX + thumbWidth
+    else -- Center
+        chapterX = thumbX + math.floor(thumbWidth/2)
+    end
     local chapterY = thumbY + thumbHeight + math.floor(chapterHeight/2)
 
     local timestampAn = 5 -- x,y is center
     local timestampX = thumbX + math.floor(thumbWidth/2)
     local timestampY = thumbY + thumbHeight + chapterHeight + math.floor(timestampHeight/2)
-
-    ---- Tooltip BG
-    ass:new_event()
-    ass:pos(tooltipX, tooltipY)
-    ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, tooltipBgAlpha))
-    ass:draw_start()
-    ass:rect_cw(0, 0, tooltipWidth, tooltipHeight)
-    ass:draw_stop()
-
-    ---- Thumb BG
-    ass:new_event()
-    ass:pos(thumbX, thumbY)
-    ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, 0))
-    ass:draw_start()
-    ass:rect_cw(0, 0, thumbWidth, thumbHeight)
-    ass:draw_stop()
 
     ---- Chapter
     if hasChapter then
@@ -362,47 +392,90 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ass:append(tethysStyle.seekbarTimestamp)
     ass:append(timestampLabel)
 
-    thumbState.thumbVisible = true
-    local thumbChanged = not (thumbState.thumbPos == sliderPos)
+    local thumbChanged = not (thumbState.tooltipPos == sliderPos)
     if thumbChanged then
-        thumbState.thumbPos = sliderPos
-
-        if thumb.showThumb then
-            ---- Generate Thumbnail
-            local ffmpegCommand = {
-                "ffmpeg",
-                "-loglevel", "quiet",
-                "-noaccurate_seek",
-                "-ss", thumbTimestamp,
-                "-i", videoPath,
-
-                "-frames:v", "1",
-                "-an",
-
-                "-vf", ("scale=%d:%d"):format(thumbGlobalWidth, thumbGlobalHeight),
-                "-c:v", "rawvideo",
-                "-pix_fmt", "bgra",
-                "-f", "rawvideo",
-
-                "-y", thumb.thumbPath,
-            }
-            msg.warn(table.concat(ffmpegCommand, " "))
-            utils.subprocess({args=ffmpegCommand})
-
-            ---- Render Thumbnail
-            -- https://mpv.io/manual/master/#command-interface-overlay-add
-            mp.command_native({
-                "overlay-add", thumb.overlayId,
-                thumbGlobalX, thumbGlobalY,
-                thumb.thumbPath,
-                0, -- byte offset
-                "bgra", -- image format
-                thumbGlobalWidth, thumbGlobalHeight,
-                thumbGlobalWidth * 4, -- "stride"
-            })
+        thumbState.tooltipPos = sliderPos
+        if thumb.showThumb and canShowThumb(videoPath) then
+            -- Reset
+            hideThumbnail()
+            -- Request new thumbnail
+            thumbState.renderRequested = true
+            thumbState.videoPath = videoPath
+            thumbState.thumbTimestamp = thumbTimestamp
+            thumbState.thumbGlobalWidth = thumbGlobalWidth
+            thumbState.thumbGlobalHeight = thumbGlobalHeight
+            thumbState.renderAt = mp.get_time() + thumb.debounce
         end
     end
+
+    if thumb.showThumb and thumbState.rendered then
+        ---- Thumb BG/Outline
+        ass:new_event()
+        ass:pos(tooltipX, tooltipY)
+        ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, tooltipBgAlpha))
+        ass:draw_start()
+        ass:rect_cw(0, 0, tooltipWidth, bgHeight)
+        ass:draw_stop()
+
+        ---- Thumb BG
+        if not (tooltipBgAlpha == 0) then
+            -- Overlay Image must be drawn on top of a solid color or else it'll look
+            -- like it was filtered.
+            ass:new_event()
+            ass:pos(thumbX, thumbY)
+            ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, 0))
+            ass:draw_start()
+            ass:rect_cw(0, 0, thumbWidth, thumbHeight)
+            ass:draw_stop()
+        end
+
+        ---- Render Thumbnail
+        -- https://mpv.io/manual/master/#command-interface-overlay-add
+        thumbState.thumbVisible = true
+        -- msg.warn(table.concat({"overlay-add", thumb.overlayId}, " "))
+        mp.command_native({
+            "overlay-add", thumb.overlayId,
+            thumbGlobalX, thumbGlobalY,
+            thumb.thumbPath,
+            0, -- byte offset
+            "bgra", -- image format
+            thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight,
+            thumbState.thumbGlobalWidth * 4, -- "stride"
+        })
+    end
 end
+
+
+local thumbTick = function()
+    -- msg.warn("thumbTick")
+    if thumb.showThumb and thumbState.renderRequested and (not thumbState.rendered) and thumbState.renderAt <= mp.get_time() then
+        ---- Generate Thumbnail
+        local ffmpegCommand = {
+            "ffmpeg",
+            "-loglevel", "quiet",
+            "-noaccurate_seek",
+            "-ss", thumbState.thumbTimestamp,
+            "-i", thumbState.videoPath,
+
+            "-frames:v", "1",
+            "-an",
+
+            "-vf", ("scale=%d:%d"):format(thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight),
+            "-c:v", "rawvideo",
+            "-pix_fmt", "bgra",
+            "-f", "rawvideo",
+
+            "-y", thumb.thumbPath,
+        }
+        -- msg.warn(table.concat(ffmpegCommand, " "))
+        utils.subprocess({args=ffmpegCommand})
+        thumbState.renderedPos = thumbState.tooltipPos
+        thumbState.rendered = true
+        -- msg.warn(string.format("rendered %s renderedPos %s", thumbState.rendered, thumbState.renderedPos))
+    end
+end
+
+local thumbTimer = mp.add_periodic_timer(0.1, thumbTick)
 
 
 -- internal states, do not touch
