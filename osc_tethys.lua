@@ -244,8 +244,8 @@ local thumbState = {
 
 function thumbInit()
     -- Check if the thumbnail already exists and is the correct size
-    local thumbFile = io.open(thumb.dirPath, "rb")
-    if thumbFile == nil then
+    local thumbDir = io.open(thumb.dirPath, "rb")
+    if thumbDir == nil then
         os.execute("mkdir " .. thumb.dirPath)
     end
 end
@@ -1217,21 +1217,10 @@ function render_elements(master_ass)
                         end
                     end
 
-                    -- tooltip label
-                    -- elem_ass:new_event()
-                    -- elem_ass:pos(tx, ty)
-                    -- elem_ass:an(an)
-                    -- elem_ass:append(slider_lo.tooltip_style)
-                    -- ass_append_alpha(elem_ass, slider_lo.alpha, 0)
-                    -- elem_ass:append(tooltipLabel)
-
-                    -- thumbnail
+                    -- Tooltip + Thumbnail
                     -- https://github.com/TheAMM/mpv_thumbnail_script
-                    -- display_thumbnail({x=get_virt_mouse_pos(), y=ty, a=an}, sliderPos, elem_ass)
-                    -- function display_thumbnail(pos, value, ass)
                     local thumbPos = {
                         x=get_virt_mouse_pos(),
-                        -- x=mp.get_mouse_pos(),
                         y=ty,
                         an=2, -- x,y is bottom-center
                     }
