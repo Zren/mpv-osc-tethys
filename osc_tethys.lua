@@ -99,6 +99,7 @@ local tethys = {
     skipBy = 5, -- skipback/skipfrwd amount in seconds
     skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
+    pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
 
     -- Sizes
     seekbarHeight = 20,
@@ -149,6 +150,12 @@ tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255,
 tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
 
 tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
+
+tethys.isPictureInPicture = false
+tethys.pipWasFullscreen = false
+tethys.pipWasMaximized = false
+tethys.pipWasOnTop = false
+tethys.pipHadBorders = false
 
 
 -- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
@@ -2244,6 +2251,41 @@ function getDeltaPlaylistItem(delta)
     return deltaItem
 end
 
+function togglePictureInPicture()
+    local isPiP = tethys.isPictureInPicture
+    if isPiP then -- Disable
+        mp.commandv('set', 'on-all-workspaces', 'no')
+        if not tethys.pipWasOnTop then
+            mp.commandv('set', 'ontop', 'no')
+        end
+        if tethys.pipHadBorders then
+            mp.commandv('set', 'border', 'yes')
+        end
+        local videoDecParams = mp.get_property_native("video-dec-params")
+        local videoWidth = videoDecParams.dw
+        local videoHeight = videoDecParams.dh
+        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
+        if tethys.pipWasMaximized then
+            mp.commandv('set', 'window-maximized', 'yes')
+        end
+        if tethys.pipWasFullscreen then
+            mp.commandv('set', 'fullscreen', 'yes')
+        end
+    else -- Enable
+        tethys.pipWasFullscreen = state.fullscreen
+        tethys.pipWasMaximized = state.maximized
+        tethys.pipWasOnTop = mp.get_property('ontop') == "yes"
+        tethys.pipHadBorders = state.border
+        mp.commandv('set', 'fullscreen', 'no')
+        mp.commandv('set', 'window-maximized', 'no')
+        mp.commandv('set', 'border', 'no')
+        mp.commandv('set', 'geometry', tethys.pipGeometry)
+        mp.commandv('set', 'ontop', 'yes')
+        mp.commandv('set', 'on-all-workspaces', 'yes')
+    end
+    tethys.isPictureInPicture = not isPiP
+end
+
 layouts["tethys"] = function()
     local direction = -1
     local osc_geo = {
@@ -2482,6 +2524,22 @@ layouts["tethys"] = function()
     lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, "Fullscreen (F)")
     if elements["tog_fs"].visible then
+        rightSectionWidth = rightSectionWidth + geo.w
+    end
+
+    -- PictureInPicture button
+    geo = {
+        x = rightX - rightSectionWidth - smallButtonSize/2,
+        y = line1Y + buttonH/2,
+        an = 5, -- x,y is left-center
+        w = smallButtonSize,
+        h = smallButtonSize,
+    }
+    lo = add_layout("tog_pip")
+    lo.geometry = geo
+    lo.style = tethysStyle.smallButton
+    setButtonTooltip(lo, "PictureInPicture")
+    if elements["tog_pip"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
 
@@ -2910,6 +2968,19 @@ function osc_init()
         function () set_track("sub", -1) end
     ne.eventresponder["shift+mbtn_left_down"] =
         function () show_message(get_tracklist("sub"), 2) end
+
+    --tog_pip
+    ne = new_element("tog_pip", "button")
+    ne.content = function ()
+        if (tethys.isPictureInPicture) then
+            return ("\238\132\137")
+        else
+            return ("\238\132\136")
+        end
+    end
+    ne.eventresponder["mbtn_left_up"] = function ()
+        togglePictureInPicture()
+    end
 
     --tog_fs
     ne = new_element("tog_fs", "button")
