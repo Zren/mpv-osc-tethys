@@ -498,9 +498,12 @@ function genThumbnailMpv()
         "--ovc=rawvideo",
         "--o=" .. thumb.thumbPath,
     }
-    if thumb.mpvNoYtdl then table.insert(mpvCommand, "--no-ytdl") end
     if thumb.mpvNoConfig then table.insert(mpvCommand, "--no-config") end
     if thumb.mpvNoSub then table.insert(mpvCommand, "--no-sub") end
+    
+    local hasYtdl = mp.get_property_native("ytdl") == true
+    if thumb.mpvNoYtdl or not hasYtdl then table.insert(mpvCommand, "--no-ytdl") end
+
     msg.warn(table.concat(mpvCommand, " "))
     utils.subprocess({args=mpvCommand})
 end
