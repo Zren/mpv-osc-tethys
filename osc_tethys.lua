@@ -504,7 +504,7 @@ function genThumbnailMpv()
     local hasYtdl = mp.get_property_native("ytdl") == true
     if thumb.mpvNoYtdl or not hasYtdl then table.insert(mpvCommand, "--no-ytdl") end
 
-    msg.warn(table.concat(mpvCommand, " "))
+    -- msg.warn(table.concat(mpvCommand, " "))
     utils.subprocess({args=mpvCommand})
 end
 
