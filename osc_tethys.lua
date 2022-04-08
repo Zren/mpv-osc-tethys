@@ -101,8 +101,10 @@ local tethys = {
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
     pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
     pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
+    showThumbnails = true, -- Show previews when hovering seekbar
 
     -- Sizes
+    thumbnailSize = 256, -- 16:9 = 256x144
     seekbarHeight = 20,
     controlsHeight = 64,
     buttonTooltipSize = 20,
@@ -229,10 +231,7 @@ end
 local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
 local hasFfmpeg = true -- Hardcoded assumption
 local thumb = {
-    showThumb = true,
     overlayId = 1,
-    width = 256,
-    height = 144,
     debounce = 0.15, -- Wait 150ms before rendering Thumbnail
     dirPath = join_paths(osCacheDir, "mpv_tethys"),
     thumbPath = join_paths(osCacheDir, "mpv_tethys/thumb.gbra"),
@@ -318,11 +317,11 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     end
     local thumbWidth, thumbHeight
     if videoWidth > videoHeight then
-        thumbWidth = thumb.width
-        thumbHeight = math.floor(videoHeight * thumb.width / videoWidth)
+        thumbWidth = tethys.thumbnailSize
+        thumbHeight = math.floor(videoHeight * tethys.thumbnailSize / videoWidth)
     else
-        thumbWidth = math.floor(videoWidth * thumb.height / videoHeight)
-        thumbHeight = thumb.height
+        thumbWidth = math.floor(videoWidth * tethys.thumbnailSize / videoHeight)
+        thumbHeight = tethys.thumbnailSize
     end
 
     local thumbGlobalWidth = math.floor(thumbWidth / scaleX)
@@ -403,7 +402,7 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     local thumbChanged = not (thumbState.tooltipPos == sliderPos)
     if thumbChanged then
         thumbState.tooltipPos = sliderPos
-        if thumb.showThumb and canShowThumb(videoPath) then
+        if tethys.showThumbnails and canShowThumb(videoPath) then
             -- Reset
             hideThumbnail()
             -- Request new thumbnail
@@ -416,7 +415,7 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
         end
     end
 
-    if thumb.showThumb and thumbState.rendered then
+    if tethys.showThumbnails and thumbState.rendered then
         ---- Thumb BG/Outline
         ass:new_event()
         ass:pos(tooltipX, tooltipY)
@@ -456,7 +455,7 @@ end
 
 local thumbTick = function()
     -- msg.warn("thumbTick")
-    if thumb.showThumb and thumbState.renderRequested and (not thumbState.rendered) and thumbState.renderAt <= mp.get_time() then
+    if tethys.showThumbnails and thumbState.renderRequested and (not thumbState.rendered) and thumbState.renderAt <= mp.get_time() then
         ---- Generate Thumbnail
         local ffmpegCommand = {
             "ffmpeg",
