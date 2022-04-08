@@ -287,6 +287,7 @@ end
 
 ----- Thumbnail
 -- Based on: https://github.com/TheAMM/mpv_thumbnail_script
+-- helpers.lua
 ON_WINDOWS = (package.config:sub(1,1) ~= '/')
 function is_absolute_path( path )
   local tmp, is_win  = path:gsub("^[A-Z]:\\", "")
@@ -307,7 +308,17 @@ function join_paths(...)
   end
   return result:gsub("[\\"..sep.."]*$", "")
 end
+function create_directories(path)
+  local cmd
+  if ON_WINDOWS then
+    cmd = { args = {"cmd", "/c", "mkdir", path} }
+  else
+    cmd = { args = {"mkdir", "-p", path} }
+  end
+  utils.subprocess(cmd)
+end
 
+-- Thumbnail State
 local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
 local hasFfmpeg = true -- Hardcoded assumption
 local thumb = {
@@ -345,11 +356,12 @@ playlistThumb.overlayId = 2
 playlistThumb.thumbPath = thumb.playlistPath:format(1)
 
 
+-- Funcs
 function thumbInit()
     -- Check if the thumbnail already exists and is the correct size
     local thumbDir = io.open(thumb.dirPath, "rb")
     if thumbDir == nil then
-        os.execute("mkdir " .. thumb.dirPath)
+        create_directories(thumb.dirPath)
     end
 end
 
@@ -421,6 +433,7 @@ function postRenderThumbnails()
     thumbPostRender(playlistThumb)
 end
 
+-- Render Utils
 -- From: Slider.tooltipF(pos)
 function formatTimestamp(percent)
     local duration = mp.get_property_number("duration", nil)
@@ -431,6 +444,8 @@ function formatTimestamp(percent)
         return ""
     end
 end
+
+-- Seekbar Tooltip
 function renderThumbnailTooltip(pos, sliderPos, ass)
     local tooltipBgColor = "FFFFFF"
     local tooltipBgAlpha = 80
@@ -579,6 +594,7 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     end
 end
 
+-- Playlist Tooltip
 function renderPlaylistTooltip(pos, playlistDelta, ass)
     local deltaItem = getDeltaPlaylistItem(playlistDelta)
     if deltaItem == nil then
