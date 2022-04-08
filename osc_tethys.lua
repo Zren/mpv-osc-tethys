@@ -377,8 +377,6 @@ function ThumbState()
 end
 local seekbarThumb = ThumbState()
 seekbarThumb.overlayId = 1
-seekbarThumb.tooltipPos = nil
-seekbarThumb.renderedPos = nil
 seekbarThumb.thumbPath = thumb.thumbPath
 local playlistThumb = ThumbState()
 playlistThumb.overlayId = 2
@@ -406,15 +404,42 @@ function canShowThumb(videoPath)
     return true
 end
 
+function showThumbnail(thumbState, globalX, globalY)
+    -- https://mpv.io/manual/master/#command-interface-overlay-add
+    -- msg.warn("showThumbnail", thumbState.overlayId)
+    mp.command_native({
+        "overlay-add", thumbState.overlayId,
+        globalX, globalY,
+        thumbState.thumbPath,
+        0, -- byte offset
+        "bgra", -- image format
+        thumbState.globalWidth, thumbState.globalHeight,
+        thumbState.globalWidth * 4, -- "stride"
+    })
+    thumbState.visible = true
+end
 function hideThumbnail(thumbState)
     -- https://mpv.io/manual/master/#command-interface-overlay-remove
-    -- msg.warn("hideThumbnail")
+    -- msg.warn("hideThumbnail", thumbState.overlayId)
     mp.command_native({
         "overlay-remove", thumbState.overlayId,
     })
     thumbState.rendered = false
     thumbState.renderedPos = nil
     thumbState.renderRequested = false
+    thumbState.videoPath = nil
+end
+function requestThumbnail(thumbState, videoPath, posTimestamp, globalWidth, globalHeight)
+    -- msg.warn("requestThumbnail", thumbState.overlayId, posTimestamp, globalWidth, globalHeight)
+    -- Reset
+    hideThumbnail(thumbState)
+    -- Request new thumbnail
+    thumbState.renderRequested = true
+    thumbState.videoPath = videoPath
+    thumbState.posTimestamp = posTimestamp
+    thumbState.globalWidth = globalWidth
+    thumbState.globalHeight = globalHeight
+    thumbState.renderAt = mp.get_time() + thumb.debounce
 end
 function thumbPreRender(thumbState)
     thumbState.wasVisible = thumbState.visible
@@ -556,15 +581,13 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     if thumbChanged then
         seekbarThumb.pos = sliderPos
         if tethys.showThumbnails and canShowThumb(videoPath) then
-            -- Reset
-            hideThumbnail(seekbarThumb)
-            -- Request new thumbnail
-            seekbarThumb.renderRequested = true
-            seekbarThumb.videoPath = videoPath
-            seekbarThumb.posTimestamp = thumbTimestamp
-            seekbarThumb.globalWidth = thumbGlobalWidth
-            seekbarThumb.globalHeight = thumbGlobalHeight
-            seekbarThumb.renderAt = mp.get_time() + thumb.debounce
+            requestThumbnail(
+                seekbarThumb,
+                videoPath,
+                thumbTimestamp,
+                thumbGlobalWidth,
+                thumbGlobalHeight
+            )
         end
     end
 
@@ -590,26 +613,50 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
         end
 
         ---- Render Thumbnail
-        -- https://mpv.io/manual/master/#command-interface-overlay-add
-        seekbarThumb.visible = true
-        -- msg.warn(table.concat({"overlay-add", thumb.overlayId}, " "))
-        mp.command_native({
-            "overlay-add", thumb.overlayId,
-            thumbGlobalX, thumbGlobalY,
-            thumb.thumbPath,
-            0, -- byte offset
-            "bgra", -- image format
-            seekbarThumb.globalWidth, seekbarThumb.globalHeight,
-            seekbarThumb.globalWidth * 4, -- "stride"
-        })
+        showThumbnail(seekbarThumb, thumbGlobalX, thumbGlobalY)
     end
 end
 
 function renderPlaylistTooltip(pos, playlistDelta, ass)
-    msg.warn("renderPlaylistTooltip", pos, playlistDelta)
-    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', playlistDelta, false)
+    local deltaItem = getDeltaPlaylistItem(playlistDelta)
     if deltaItem == nil then
         return nil
+    end
+
+    local videoPath = deltaItem.filename
+    local thumbTimestamp = mp.format_time(0.5)
+    local thumbGlobalWidth = 100
+    local thumbGlobalHeight = 100
+
+    local thumbChanged = not (playlistThumb.videoPath == videoPath)
+    if thumbChanged and tethys.showThumbnails and canShowThumb(videoPath) then
+        requestThumbnail(
+            playlistThumb,
+            videoPath,
+            thumbTimestamp,
+            thumbGlobalWidth,
+            thumbGlobalHeight
+        )
+    end
+    if tethys.showThumbnails and playlistThumb.rendered then
+        ---- Render Thumbnail
+        -- pos.an is bottom (1,2,3)
+        local scaleX, scaleY = get_virt_scale_factor()
+        local thumbWidth = playlistThumb.globalWidth * scaleX
+        local thumbHeight = playlistThumb.globalHeight * scaleX
+        local thumbX = pos.x - math.floor(thumbWidth/2)
+        local thumbY = pos.y - thumbHeight
+        local thumbGlobalX = math.floor(thumbX / scaleX)
+        local thumbGlobalY = math.floor(thumbY / scaleY)
+
+        ass:new_event()
+        ass:pos(thumbX, thumbY)
+        ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format("000000", 0))
+        ass:draw_start()
+        ass:rect_cw(0, 0, thumbWidth, thumbHeight)
+        ass:draw_stop()
+
+        showThumbnail(playlistThumb, thumbGlobalX, thumbGlobalY)
     end
 end
 
@@ -1516,9 +1563,11 @@ function render_elements(master_ass)
                 if not (type(labelList) == "table") then
                     labelList = {}
                 end
+                local rowY = ty
                 for i, label in ipairs(labelList) do
+                    rowY = ty - ((i-1) * tethys.buttonTooltipSize)
                     new_ass_node(elem_ass)
-                    elem_ass:pos(tx, ty - ((i-1) * tethys.buttonTooltipSize))
+                    elem_ass:pos(tx, rowY)
                     elem_ass:an(button_lo.tooltip_an)
                     elem_ass:append(button_lo.tooltip_style)
                     ass_append_alpha(elem_ass, tooltipAlpha, 0)
@@ -1526,11 +1575,13 @@ function render_elements(master_ass)
                     elem_ass:append(label)
                     elem_ass.scale = 4
                 end
+                rowY = rowY - tethys.buttonTooltipSize
 
                 if not (button_lo.playlist == nil) then
                     local thumbPos = {
                         x = tx,
-                        y = ty,
+                        y = rowY,
+                        an = button_lo.tooltip_an,
                     }
                     renderPlaylistTooltip(thumbPos, button_lo.playlist, elem_ass)
                 end
