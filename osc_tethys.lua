@@ -205,6 +205,124 @@ local tethysStyle = {
     chapterTick = genColorStyle(tethys.chapterTickColor),
 }
 
+
+
+---- Playlist / Chapter Utils
+function getDeltaListItem(listKey, curKey, delta, clamp)
+    local pos = mp.get_property_number(curKey, 0) + 1
+    local count, limlist = limited_list(listKey, pos)
+    if count == 0 then
+        return nil
+    end
+
+    local curIndex = -1
+    for i, v in ipairs(limlist) do
+        if v.current then
+            curIndex = i
+            break
+        end
+    end
+
+    local deltaIndex = curIndex + delta
+    if curIndex == -1 then
+        return nil
+    elseif deltaIndex < 1 then
+        if clamp then
+            deltaIndex = 1
+        else
+            return nil
+        end
+    elseif deltaIndex > count then
+        if clamp then
+            deltaIndex = count
+        else
+            return nil
+        end
+    end
+
+    local deltaItem = limlist[deltaIndex]
+    return deltaIndex, deltaItem
+end
+
+function getDeltaChapter(delta)
+    local deltaIndex, deltaChapter = getDeltaListItem('chapter-list', 'chapter', delta, true)
+    if deltaChapter == nil then -- Video Done
+        return nil
+    end
+    deltaChapter = {
+        index = deltaIndex,
+        time = deltaChapter.time,
+        title = deltaChapter.title,
+        label = nil,
+    }
+    local label = deltaChapter.title
+    if label == nil then
+        label = string.format('Chapter %02d', deltaChapter.index)
+    end
+    -- local time = mp.format_time(deltaChapter.time)
+    -- deltaChapter.label = string.format('[%s] %s', time, label)
+    deltaChapter.label = label
+    return deltaChapter
+end
+
+function getDeltaPlaylistItem(delta)
+    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', delta, false)
+    if deltaItem == nil then
+        return nil
+    end
+    deltaItem = {
+        index = deltaIndex,
+        filename = deltaItem.filename,
+        title = deltaItem.title,
+        label = nil,
+    }
+    local label = deltaItem.title
+    if label == nil then
+        local _, filename = utils.split_path(deltaItem.filename)
+        label = filename
+    end
+    deltaItem.label = label
+    return deltaItem
+end
+
+---- Actions
+function togglePictureInPicture()
+    local isPiP = tethys.isPictureInPicture
+    if isPiP then -- Disable
+        mp.commandv('set', 'on-all-workspaces', 'no')
+        if not tethys.pipWasOnTop then
+            mp.commandv('set', 'ontop', 'no')
+        end
+        if tethys.pipHadBorders then
+            mp.commandv('set', 'border', 'yes')
+        end
+        local videoDecParams = mp.get_property_native("video-dec-params")
+        local videoWidth = videoDecParams.dw
+        local videoHeight = videoDecParams.dh
+        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
+        if tethys.pipWasMaximized then
+            mp.commandv('set', 'window-maximized', 'yes')
+        end
+        if tethys.pipWasFullscreen then
+            mp.commandv('set', 'fullscreen', 'yes')
+        end
+    else -- Enable
+        tethys.pipWasFullscreen = state.fullscreen
+        tethys.pipWasMaximized = state.maximized
+        tethys.pipWasOnTop = mp.get_property('ontop') == "yes"
+        tethys.pipHadBorders = state.border
+        mp.commandv('set', 'fullscreen', 'no')
+        mp.commandv('set', 'window-maximized', 'no')
+        mp.commandv('set', 'border', 'no')
+        mp.commandv('set', 'geometry', tethys.pipGeometry)
+        mp.commandv('set', 'ontop', 'yes')
+        if tethys.pipAllWorkspaces then
+            mp.commandv('set', 'on-all-workspaces', 'yes')
+        end
+    end
+    tethys.isPictureInPicture = not isPiP
+end
+
 ----- Thumbnail
 -- Based on: https://github.com/TheAMM/mpv_thumbnail_script
 ON_WINDOWS = (package.config:sub(1,1) ~= '/')
@@ -241,17 +359,31 @@ local thumb = {
     mpvNoSub = true,
     mpvNoYtdl = true,
 }
-local thumbState = {
-    thumbVisible = false,
-    tooltipPos = nil,
-    rendered = false,
-    renderedPos = nil,
-    renderAt = nil,
-    videoPath = nil,
-    thumbTimestamp = nil,
-    thumbGlobalWidth = nil,
-    thumbGlobalHeight = nil,
-}
+function ThumbState()
+    return {
+        overlayId = 1,
+        visible = false,
+        wasVisible = false,
+        pos = nil,
+        posTimestamp = nil,
+        rendered = false,
+        renderedPos = nil,
+        renderAt = nil,
+        thumbPath = nil,
+        videoPath = nil,
+        globalWidth = nil,
+        globalHeight = nil,
+    }
+end
+local seekbarThumb = ThumbState()
+seekbarThumb.overlayId = 1
+seekbarThumb.tooltipPos = nil
+seekbarThumb.renderedPos = nil
+seekbarThumb.thumbPath = thumb.thumbPath
+local playlistThumb = ThumbState()
+playlistThumb.overlayId = 2
+playlistThumb.thumbPath = thumb.playlistPath:format(1)
+
 
 function thumbInit()
     -- Check if the thumbnail already exists and is the correct size
@@ -274,15 +406,32 @@ function canShowThumb(videoPath)
     return true
 end
 
-function hideThumbnail()
+function hideThumbnail(thumbState)
     -- https://mpv.io/manual/master/#command-interface-overlay-remove
     -- msg.warn("hideThumbnail")
     mp.command_native({
-        "overlay-remove", thumb.overlayId,
+        "overlay-remove", thumbState.overlayId,
     })
     thumbState.rendered = false
     thumbState.renderedPos = nil
     thumbState.renderRequested = false
+end
+function thumbPreRender(thumbState)
+    thumbState.wasVisible = thumbState.visible
+    thumbState.visible = false
+end
+function thumbPostRender(thumbState)
+    if not thumbState.visible and thumbState.wasVisible then
+        hideThumbnail(thumbState)
+    end
+end
+function preRenderThumbnails()
+    thumbPreRender(seekbarThumb)
+    thumbPreRender(playlistThumb)
+end
+function postRenderThumbnails()
+    thumbPostRender(seekbarThumb)
+    thumbPostRender(playlistThumb)
 end
 
 -- From: Slider.tooltipF(pos)
@@ -403,23 +552,23 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ass:append(tethysStyle.seekbarTimestamp)
     ass:append(timestampLabel)
 
-    local thumbChanged = not (thumbState.tooltipPos == sliderPos)
+    local thumbChanged = not (seekbarThumb.pos == sliderPos)
     if thumbChanged then
-        thumbState.tooltipPos = sliderPos
+        seekbarThumb.pos = sliderPos
         if tethys.showThumbnails and canShowThumb(videoPath) then
             -- Reset
-            hideThumbnail()
+            hideThumbnail(seekbarThumb)
             -- Request new thumbnail
-            thumbState.renderRequested = true
-            thumbState.videoPath = videoPath
-            thumbState.thumbTimestamp = thumbTimestamp
-            thumbState.thumbGlobalWidth = thumbGlobalWidth
-            thumbState.thumbGlobalHeight = thumbGlobalHeight
-            thumbState.renderAt = mp.get_time() + thumb.debounce
+            seekbarThumb.renderRequested = true
+            seekbarThumb.videoPath = videoPath
+            seekbarThumb.posTimestamp = thumbTimestamp
+            seekbarThumb.globalWidth = thumbGlobalWidth
+            seekbarThumb.globalHeight = thumbGlobalHeight
+            seekbarThumb.renderAt = mp.get_time() + thumb.debounce
         end
     end
 
-    if tethys.showThumbnails and thumbState.rendered then
+    if tethys.showThumbnails and seekbarThumb.rendered then
         ---- Thumb BG/Outline
         ass:new_event()
         ass:pos(tooltipX, tooltipY)
@@ -442,7 +591,7 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
 
         ---- Render Thumbnail
         -- https://mpv.io/manual/master/#command-interface-overlay-add
-        thumbState.thumbVisible = true
+        seekbarThumb.visible = true
         -- msg.warn(table.concat({"overlay-add", thumb.overlayId}, " "))
         mp.command_native({
             "overlay-add", thumb.overlayId,
@@ -450,35 +599,43 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
             thumb.thumbPath,
             0, -- byte offset
             "bgra", -- image format
-            thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight,
-            thumbState.thumbGlobalWidth * 4, -- "stride"
+            seekbarThumb.globalWidth, seekbarThumb.globalHeight,
+            seekbarThumb.globalWidth * 4, -- "stride"
         })
     end
 end
 
-function genThumbnailFfmpeg()
+function renderPlaylistTooltip(pos, playlistDelta, ass)
+    msg.warn("renderPlaylistTooltip", pos, playlistDelta)
+    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', playlistDelta, false)
+    if deltaItem == nil then
+        return nil
+    end
+end
+
+function genThumbnailFfmpeg(thumbState)
     -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
     local ffmpegCommand = {
         "ffmpeg",
         "-loglevel", "quiet",
         "-noaccurate_seek",
-        "-ss", thumbState.thumbTimestamp,
+        "-ss", thumbState.posTimestamp,
         "-i", thumbState.videoPath,
 
         "-frames:v", "1",
         "-an",
 
-        "-vf", ("scale=%d:%d"):format(thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight),
+        "-vf", ("scale=%d:%d"):format(thumbState.globalWidth, thumbState.globalHeight),
         "-c:v", "rawvideo",
         "-pix_fmt", "bgra",
         "-f", "rawvideo",
 
-        "-y", thumb.thumbPath,
+        "-y", thumbState.thumbPath,
     }
     -- msg.warn(table.concat(ffmpegCommand, " "))
     utils.subprocess({args=ffmpegCommand})
 end
-function genThumbnailMpv()
+function genThumbnailMpv(thumbState)
     -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
     local mpvCommand = {
         "mpv",
@@ -487,16 +644,16 @@ function genThumbnailMpv()
 
         thumbState.videoPath,
 
-        "--start=" .. tostring(thumbState.thumbTimestamp),
+        "--start=" .. tostring(thumbState.posTimestamp),
         "-frames", "1",
         "--hr-seek=yes",
         "--no-audio",
 
-        ("-vf=scale=%d:%d"):format(thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight),
+        ("-vf=scale=%d:%d"):format(thumbState.globalWidth, thumbState.globalHeight),
         "--vf-add=format=bgra",
         "--of=rawvideo",
         "--ovc=rawvideo",
-        "--o=" .. thumb.thumbPath,
+        "--o=" .. thumbState.thumbPath,
     }
     if thumb.mpvNoConfig then table.insert(mpvCommand, "--no-config") end
     if thumb.mpvNoSub then table.insert(mpvCommand, "--no-sub") end
@@ -508,19 +665,24 @@ function genThumbnailMpv()
     utils.subprocess({args=mpvCommand})
 end
 
-local thumbTick = function()
-    -- msg.warn("thumbTick")
+function updateThumb(thumbState)
     if tethys.showThumbnails and thumbState.renderRequested and (not thumbState.rendered) and thumbState.renderAt <= mp.get_time() then
         ---- Generate Thumbnail
         if thumb.preferMpv then
-            genThumbnailMpv()
+            genThumbnailMpv(thumbState)
         else
-            genThumbnailFfmpeg()
+            genThumbnailFfmpeg(thumbState)
         end
-        thumbState.renderedPos = thumbState.tooltipPos
+        thumbState.renderedPos = thumbState.pos
         thumbState.rendered = true
         -- msg.warn(string.format("rendered %s renderedPos %s", thumbState.rendered, thumbState.renderedPos))
     end
+end
+
+local thumbTick = function()
+    -- msg.warn("thumbTick")
+    updateThumb(seekbarThumb)
+    updateThumb(playlistThumb)
 end
 
 local thumbTimer = mp.add_periodic_timer(0.1, thumbTick)
@@ -1364,6 +1526,14 @@ function render_elements(master_ass)
                     elem_ass:append(label)
                     elem_ass.scale = 4
                 end
+
+                if not (button_lo.playlist == nil) then
+                    local thumbPos = {
+                        x = tx,
+                        y = ty,
+                    }
+                    renderPlaylistTooltip(thumbPos, button_lo.playlist, elem_ass)
+                end
             end
         end
 
@@ -1529,6 +1699,7 @@ function add_layout(name)
             elements[name].layout.button = {
                 maxchars = nil,
                 hover_style = tethysStyle.buttonHovered,
+                playlist = nil,
             }
         elseif (elements[name].type == "slider") then
             -- slider defaults
@@ -2217,120 +2388,6 @@ layouts["topbar"] = function()
     bar_layout(1)
 end
 
-function getDeltaListItem(listKey, curKey, delta, clamp)
-    local pos = mp.get_property_number(curKey, 0) + 1
-    local count, limlist = limited_list(listKey, pos)
-    if count == 0 then
-        return nil
-    end
-
-    local curIndex = -1
-    for i, v in ipairs(limlist) do
-        if v.current then
-            curIndex = i
-            break
-        end
-    end
-
-    local deltaIndex = curIndex + delta
-    if curIndex == -1 then
-        return nil
-    elseif deltaIndex < 1 then
-        if clamp then
-            deltaIndex = 1
-        else
-            return nil
-        end
-    elseif deltaIndex > count then
-        if clamp then
-            deltaIndex = count
-        else
-            return nil
-        end
-    end
-
-    local deltaItem = limlist[deltaIndex]
-    return deltaIndex, deltaItem
-end
-
-function getDeltaChapter(delta)
-    local deltaIndex, deltaChapter = getDeltaListItem('chapter-list', 'chapter', delta, true)
-    if deltaChapter == nil then -- Video Done
-        return nil
-    end
-    deltaChapter = {
-        index = deltaIndex,
-        time = deltaChapter.time,
-        title = deltaChapter.title,
-        label = nil,
-    }
-    local label = deltaChapter.title
-    if label == nil then
-        label = string.format('Chapter %02d', deltaChapter.index)
-    end
-    -- local time = mp.format_time(deltaChapter.time)
-    -- deltaChapter.label = string.format('[%s] %s', time, label)
-    deltaChapter.label = label
-    return deltaChapter
-end
-
-function getDeltaPlaylistItem(delta)
-    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', delta, false)
-    if deltaItem == nil then -- Video Done
-        return nil
-    end
-    deltaItem = {
-        index = deltaIndex,
-        filename = deltaItem.filename,
-        title = deltaItem.title,
-        label = nil,
-    }
-    local label = deltaItem.title
-    if label == nil then
-        local _, filename = utils.split_path(deltaItem.filename)
-        label = filename
-    end
-    deltaItem.label = label
-    return deltaItem
-end
-
-function togglePictureInPicture()
-    local isPiP = tethys.isPictureInPicture
-    if isPiP then -- Disable
-        mp.commandv('set', 'on-all-workspaces', 'no')
-        if not tethys.pipWasOnTop then
-            mp.commandv('set', 'ontop', 'no')
-        end
-        if tethys.pipHadBorders then
-            mp.commandv('set', 'border', 'yes')
-        end
-        local videoDecParams = mp.get_property_native("video-dec-params")
-        local videoWidth = videoDecParams.dw
-        local videoHeight = videoDecParams.dh
-        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
-        if tethys.pipWasMaximized then
-            mp.commandv('set', 'window-maximized', 'yes')
-        end
-        if tethys.pipWasFullscreen then
-            mp.commandv('set', 'fullscreen', 'yes')
-        end
-    else -- Enable
-        tethys.pipWasFullscreen = state.fullscreen
-        tethys.pipWasMaximized = state.maximized
-        tethys.pipWasOnTop = mp.get_property('ontop') == "yes"
-        tethys.pipHadBorders = state.border
-        mp.commandv('set', 'fullscreen', 'no')
-        mp.commandv('set', 'window-maximized', 'no')
-        mp.commandv('set', 'border', 'no')
-        mp.commandv('set', 'geometry', tethys.pipGeometry)
-        mp.commandv('set', 'ontop', 'yes')
-        if tethys.pipAllWorkspaces then
-            mp.commandv('set', 'on-all-workspaces', 'yes')
-        end
-    end
-    tethys.isPictureInPicture = not isPiP
-end
-
 layouts["tethys"] = function()
     local direction = -1
     local osc_geo = {
@@ -2636,6 +2693,7 @@ layouts["tethys"] = function()
     lo = add_layout("pl_next")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
+    lo.button.playlist = 1
     setButtonTooltip(lo, function()
         local shortcutLabel = "Next (> or Enter)"
         local nextItem = getDeltaPlaylistItem(1)
@@ -2660,6 +2718,7 @@ layouts["tethys"] = function()
     lo = add_layout("pl_prev")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
+    lo.button.playlist = -1
     setButtonTooltip(lo, function()
         local shortcutLabel = "Previous (<)"
         local nextItem = getDeltaPlaylistItem(-1)
@@ -3582,19 +3641,16 @@ function render()
     -- Messages
     render_message(ass)
 
-    -- Thumbnail (PreRender)
-    local thumbWasVisible = thumbState.thumbVisible
-    thumbState.thumbVisible = false
+    -- PreRender
+    preRenderThumbnails()
 
     -- actual OSC
     if state.osc_visible then
         render_elements(ass)
     end
 
-    -- Thumbnail (PostRender)
-    if not thumbState.thumbVisible and thumbWasVisible then
-        hideThumbnail()
-    end
+    -- PostRender
+    postRenderThumbnails()
 
     -- submit
     set_osd(osc_param.playresy * osc_param.display_aspect,
