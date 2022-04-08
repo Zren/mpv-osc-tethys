@@ -100,6 +100,7 @@ local tethys = {
     skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
     pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
+    pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
 
     -- Sizes
     seekbarHeight = 20,
@@ -2283,7 +2284,9 @@ function togglePictureInPicture()
         mp.commandv('set', 'border', 'no')
         mp.commandv('set', 'geometry', tethys.pipGeometry)
         mp.commandv('set', 'ontop', 'yes')
-        mp.commandv('set', 'on-all-workspaces', 'yes')
+        if tethys.pipAllWorkspaces then
+            mp.commandv('set', 'on-all-workspaces', 'yes')
+        end
     end
     tethys.isPictureInPicture = not isPiP
 end
