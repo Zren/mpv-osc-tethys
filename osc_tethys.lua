@@ -236,6 +236,10 @@ local thumb = {
     dirPath = join_paths(osCacheDir, "mpv_tethys"),
     thumbPath = join_paths(osCacheDir, "mpv_tethys/thumb.gbra"),
     playlistPath = join_paths(osCacheDir, "mpv_tethys/playlist-%06d.gbra"),
+    preferMpv = true,
+    mpvNoConfig = true,
+    mpvNoSub = true,
+    mpvNoYtdl = true,
 }
 local thumbState = {
     thumbVisible = false,
@@ -452,30 +456,64 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     end
 end
 
+function genThumbnailFfmpeg()
+    -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
+    local ffmpegCommand = {
+        "ffmpeg",
+        "-loglevel", "quiet",
+        "-noaccurate_seek",
+        "-ss", thumbState.thumbTimestamp,
+        "-i", thumbState.videoPath,
+
+        "-frames:v", "1",
+        "-an",
+
+        "-vf", ("scale=%d:%d"):format(thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight),
+        "-c:v", "rawvideo",
+        "-pix_fmt", "bgra",
+        "-f", "rawvideo",
+
+        "-y", thumb.thumbPath,
+    }
+    -- msg.warn(table.concat(ffmpegCommand, " "))
+    utils.subprocess({args=ffmpegCommand})
+end
+function genThumbnailMpv()
+    -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
+    local mpvCommand = {
+        "mpv",
+        "--msg-level=all=no",
+        "--hwdec=no",
+
+        thumbState.videoPath,
+
+        "--start=" .. tostring(thumbState.thumbTimestamp),
+        "-frames", "1",
+        "--hr-seek=yes",
+        "--no-audio",
+
+        ("-vf=scale=%d:%d"):format(thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight),
+        "--vf-add=format=bgra",
+        "--of=rawvideo",
+        "--ovc=rawvideo",
+        "--o=" .. thumb.thumbPath,
+    }
+    if thumb.mpvNoYtdl then table.insert(mpvCommand, "--no-ytdl") end
+    if thumb.mpvNoConfig then table.insert(mpvCommand, "--no-config") end
+    if thumb.mpvNoSub then table.insert(mpvCommand, "--no-sub") end
+    msg.warn(table.concat(mpvCommand, " "))
+    utils.subprocess({args=mpvCommand})
+end
 
 local thumbTick = function()
     -- msg.warn("thumbTick")
     if tethys.showThumbnails and thumbState.renderRequested and (not thumbState.rendered) and thumbState.renderAt <= mp.get_time() then
         ---- Generate Thumbnail
-        local ffmpegCommand = {
-            "ffmpeg",
-            "-loglevel", "quiet",
-            "-noaccurate_seek",
-            "-ss", thumbState.thumbTimestamp,
-            "-i", thumbState.videoPath,
-
-            "-frames:v", "1",
-            "-an",
-
-            "-vf", ("scale=%d:%d"):format(thumbState.thumbGlobalWidth, thumbState.thumbGlobalHeight),
-            "-c:v", "rawvideo",
-            "-pix_fmt", "bgra",
-            "-f", "rawvideo",
-
-            "-y", thumb.thumbPath,
-        }
-        -- msg.warn(table.concat(ffmpegCommand, " "))
-        utils.subprocess({args=ffmpegCommand})
+        if thumb.preferMpv then
+            genThumbnailMpv()
+        else
+            genThumbnailFfmpeg()
+        end
         thumbState.renderedPos = thumbState.tooltipPos
         thumbState.rendered = true
         -- msg.warn(string.format("rendered %s renderedPos %s", thumbState.rendered, thumbState.renderedPos))
