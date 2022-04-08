@@ -285,44 +285,6 @@ function getDeltaPlaylistItem(delta)
     return deltaItem
 end
 
----- Actions
-function togglePictureInPicture()
-    local isPiP = tethys.isPictureInPicture
-    if isPiP then -- Disable
-        mp.commandv('set', 'on-all-workspaces', 'no')
-        if not tethys.pipWasOnTop then
-            mp.commandv('set', 'ontop', 'no')
-        end
-        if tethys.pipHadBorders then
-            mp.commandv('set', 'border', 'yes')
-        end
-        local videoDecParams = mp.get_property_native("video-dec-params")
-        local videoWidth = videoDecParams.dw
-        local videoHeight = videoDecParams.dh
-        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
-        if tethys.pipWasMaximized then
-            mp.commandv('set', 'window-maximized', 'yes')
-        end
-        if tethys.pipWasFullscreen then
-            mp.commandv('set', 'fullscreen', 'yes')
-        end
-    else -- Enable
-        tethys.pipWasFullscreen = state.fullscreen
-        tethys.pipWasMaximized = state.maximized
-        tethys.pipWasOnTop = mp.get_property('ontop') == "yes"
-        tethys.pipHadBorders = state.border
-        mp.commandv('set', 'fullscreen', 'no')
-        mp.commandv('set', 'window-maximized', 'no')
-        mp.commandv('set', 'border', 'no')
-        mp.commandv('set', 'geometry', tethys.pipGeometry)
-        mp.commandv('set', 'ontop', 'yes')
-        if tethys.pipAllWorkspaces then
-            mp.commandv('set', 'on-all-workspaces', 'yes')
-        end
-    end
-    tethys.isPictureInPicture = not isPiP
-end
-
 ----- Thumbnail
 -- Based on: https://github.com/TheAMM/mpv_thumbnail_script
 ON_WINDOWS = (package.config:sub(1,1) ~= '/')
@@ -998,6 +960,48 @@ function ass_draw_rr_h_ccw(ass, x0, y0, x1, y1, r1, hexagon, r2)
     else
         ass:round_rect_ccw(x0, y0, x1, y1, r1, r2)
     end
+end
+
+
+--
+-- Picture In Picture
+--
+
+function togglePictureInPicture()
+    local isPiP = tethys.isPictureInPicture
+    if isPiP then -- Disable
+        mp.commandv('set', 'on-all-workspaces', 'no')
+        if not tethys.pipWasOnTop then
+            mp.commandv('set', 'ontop', 'no')
+        end
+        if tethys.pipHadBorders then
+            mp.commandv('set', 'border', 'yes')
+        end
+        local videoDecParams = mp.get_property_native("video-dec-params")
+        local videoWidth = videoDecParams.dw
+        local videoHeight = videoDecParams.dh
+        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
+        if tethys.pipWasMaximized then
+            mp.commandv('set', 'window-maximized', 'yes')
+        end
+        if tethys.pipWasFullscreen then
+            mp.commandv('set', 'fullscreen', 'yes')
+        end
+    else -- Enable
+        tethys.pipWasFullscreen = state.fullscreen
+        tethys.pipWasMaximized = state.maximized
+        tethys.pipWasOnTop = mp.get_property('ontop') == "yes"
+        tethys.pipHadBorders = state.border
+        mp.commandv('set', 'fullscreen', 'no')
+        mp.commandv('set', 'window-maximized', 'no')
+        mp.commandv('set', 'border', 'no')
+        mp.commandv('set', 'geometry', tethys.pipGeometry)
+        mp.commandv('set', 'ontop', 'yes')
+        if tethys.pipAllWorkspaces then
+            mp.commandv('set', 'on-all-workspaces', 'yes')
+        end
+    end
+    tethys.isPictureInPicture = not isPiP
 end
 
 
