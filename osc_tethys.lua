@@ -657,7 +657,7 @@ function genThumbnailFfmpeg(thumbState)
 
         "-y", thumbState.thumbPath,
     }
-    -- msg.warn(table.concat(ffmpegCommand, " "))
+    msg.warn(table.concat(ffmpegCommand, " "))
     utils.subprocess({args=ffmpegCommand})
 end
 function genThumbnailMpv(thumbState)
@@ -686,7 +686,7 @@ function genThumbnailMpv(thumbState)
     local hasYtdl = mp.get_property_native("ytdl") == true
     if thumb.mpvNoYtdl or not hasYtdl then table.insert(mpvCommand, "--no-ytdl") end
 
-    -- msg.warn(table.concat(mpvCommand, " "))
+    msg.warn(table.concat(mpvCommand, " "))
     utils.subprocess({args=mpvCommand})
 end
 
