@@ -102,6 +102,7 @@ local tethys = {
     pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
     pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
     showThumbnails = true, -- Show previews when hovering seekbar
+    showPlaylistThumbnails = false, -- Show previews when hovering playlist prev/next
 
     -- Sizes
     thumbnailSize = 256, -- 16:9 = 256x144
@@ -607,7 +608,7 @@ function renderPlaylistTooltip(pos, playlistDelta, ass)
     local thumbGlobalHeight = 100
 
     local thumbChanged = not (playlistThumb.videoPath == videoPath)
-    if thumbChanged and tethys.showThumbnails and canShowThumb(videoPath) then
+    if thumbChanged and tethys.showPlaylistThumbnails and canShowThumb(videoPath) then
         requestThumbnail(
             playlistThumb,
             videoPath,
@@ -616,7 +617,7 @@ function renderPlaylistTooltip(pos, playlistDelta, ass)
             thumbGlobalHeight
         )
     end
-    if tethys.showThumbnails and playlistThumb.rendered then
+    if tethys.showPlaylistThumbnails and playlistThumb.rendered then
         ---- Render Thumbnail
         -- pos.an is bottom (1,2,3)
         local scaleX, scaleY = get_virt_scale_factor()
