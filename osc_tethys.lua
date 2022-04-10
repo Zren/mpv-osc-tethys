@@ -1128,6 +1128,7 @@ function togglePictureInPicture()
         end
     end
     tethys.isPictureInPicture = not isPiP
+    utils.shared_script_property_set("pictureinpicture", tostring(tethys.isPictureInPicture))
 end
 
 
