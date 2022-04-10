@@ -336,8 +336,8 @@ local thumb = {
     overlayId = 1,
     debounce = 0.15, -- Wait 150ms before rendering Thumbnail
     dirPath = join_paths(osCacheDir, "mpv_tethys"),
-    thumbPath = join_paths(osCacheDir, "mpv_tethys", "thumb.gbra"),
-    playlistPath = join_paths(osCacheDir, "mpv_tethys", "playlist-%06d.gbra"),
+    thumbPathFormat = join_paths(osCacheDir, "mpv_tethys", "thumb-%06d.gbra"),
+    playlistPathFormat = join_paths(osCacheDir, "mpv_tethys", "playlist-%06d.gbra"),
     preferMpv = true,
     mpvNoConfig = true,
     mpvNoSub = true,
@@ -365,12 +365,14 @@ function ThumbState()
 end
 local seekbarThumb = ThumbState()
 seekbarThumb.overlayId = 1
-seekbarThumb.thumbPath = thumb.thumbPath
+seekbarThumb.thumbPathFormat = thumb.thumbPathFormat
 seekbarThumb.videoDuration = nil
 seekbarThumb.delta = nil
+seekbarThumb.cachedIndexes = {}
 local playlistThumb = ThumbState()
 playlistThumb.overlayId = 2
-playlistThumb.thumbPath = thumb.playlistPath:format(1)
+playlistThumb.thumbPathFormat = thumb.playlistPathFormat
+playlistThumb.thumbPath = playlistThumb.thumbPathFormat:format(1)
 
 
 -- Funcs
@@ -444,12 +446,14 @@ function updateThumbIndex(thumbState, videoPath, pos)
         local targetDelta = thumbState.videoDuration / thumb.numThumbnails
         thumbState.delta = math.max(thumb.minDelta, math.min(thumb.maxDelta, targetDelta))
         thumbState.numThumbs = math.min(math.floor(thumbState.videoDuration / thumbState.delta)+1, thumb.numThumbnails)
+        thumbState.cachedIndexes = {}
     end
 
     local thumbIndex = getThumbIndex(thumbState, pos)
     local indexChanged = not (thumbState.index == thumbIndex)
-    if indexChanged then
+    if fileChanged or indexChanged then
         thumbState.index = thumbIndex
+        thumbState.thumbPath = thumbState.thumbPathFormat:format(thumbState.index)
         local deltaTime = getThumbDeltaTime(thumbState)
         thumbState.timestamp = mp.format_time(deltaTime)
     end
@@ -457,19 +461,31 @@ function updateThumbIndex(thumbState, videoPath, pos)
 end
 function requestThumbnail(thumbState, videoPath, timestamp, globalWidth, globalHeight)
     -- msg.warn("requestThumbnail", thumbState.overlayId, timestamp, globalWidth, globalHeight)
-    -- Hide
-    hideThumbnail(thumbState)
-    -- Reset
-    thumbState.rendered = false
-    thumbState.renderedIndex = nil
-    thumbState.renderFailed = false
-    -- Request new thumbnail
-    thumbState.renderRequested = true
+
+    if not ((thumbState.globalWidth == globalWidth) and (thumbState.globalHeight == globalHeight)) then
+        thumbState.globalWidth = globalWidth
+        thumbState.globalHeight = globalHeight
+        thumbState.cachedIndexes = {}
+    end
+
     thumbState.videoPath = videoPath
     thumbState.timestamp = timestamp
-    thumbState.globalWidth = globalWidth
-    thumbState.globalHeight = globalHeight
-    thumbState.renderAt = mp.get_time() + thumb.debounce
+
+    if thumbState.cachedIndexes[thumbState.index] then
+        thumbState.rendered = true
+        thumbState.renderedIndex = thumbState.index
+        return
+    else
+        -- Hide
+        hideThumbnail(thumbState)
+        -- Reset
+        thumbState.rendered = false
+        thumbState.renderedIndex = nil
+        thumbState.renderFailed = false
+        -- Request new thumbnail
+        thumbState.renderRequested = true
+        thumbState.renderAt = mp.get_time() + thumb.debounce
+    end
 end
 function thumbPreRender(thumbState)
     thumbState.wasVisible = thumbState.visible
@@ -791,6 +807,7 @@ function updateThumb(thumbState)
             return
         end
 
+        thumbState.cachedIndexes[thumbState.index] = true
         thumbState.renderedIndex = thumbState.index
         thumbState.rendered = true
         -- msg.warn("rendered", thumbState.rendered, "renderedIndex", thumbState.renderedIndex)
