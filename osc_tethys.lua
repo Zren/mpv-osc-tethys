@@ -3460,7 +3460,7 @@ function update_margins()
     local margins = osc_param.video_margins
 
     -- Don't use margins if it's visible only temporarily.
-    if (not state.osc_visible) or (get_hidetimeout() >= 0) or
+    if (not state.osc_visible) or
        (state.fullscreen and not user_opts.showfullscreen) or
        (not state.fullscreen and not user_opts.showwindowed)
     then
