@@ -342,16 +342,19 @@ local thumb = {
     mpvNoConfig = true,
     mpvNoSub = true,
     mpvNoYtdl = true,
+    numThumbnails = 150,
+    minDelta = 5, -- Min 5s between thumbnails
+    maxDelta = 90, -- Max 1m30 between thumbnails
 }
 function ThumbState()
     return {
         overlayId = 1,
         visible = false,
         wasVisible = false,
-        pos = nil,
-        posTimestamp = nil,
+        index = nil,
+        timestamp = nil,
         rendered = false,
-        renderedPos = nil,
+        renderedIndex = nil,
         renderFailed = false,
         renderAt = nil,
         thumbPath = nil,
@@ -363,6 +366,8 @@ end
 local seekbarThumb = ThumbState()
 seekbarThumb.overlayId = 1
 seekbarThumb.thumbPath = thumb.thumbPath
+seekbarThumb.videoDuration = nil
+seekbarThumb.delta = nil
 local playlistThumb = ThumbState()
 playlistThumb.overlayId = 2
 playlistThumb.thumbPath = thumb.playlistPath:format(1)
@@ -410,20 +415,58 @@ function hideThumbnail(thumbState)
     mp.command_native({
         "overlay-remove", thumbState.overlayId,
     })
-    thumbState.rendered = false
-    thumbState.renderedPos = nil
-    thumbState.renderFailed = false
-    thumbState.renderRequested = false
-    thumbState.videoPath = nil
 end
-function requestThumbnail(thumbState, videoPath, posTimestamp, globalWidth, globalHeight)
-    -- msg.warn("requestThumbnail", thumbState.overlayId, posTimestamp, globalWidth, globalHeight)
-    -- Reset
+function getThumbIndex(thumbState, pos)
+    -- pos is video (0.0% .. 100.0%)
+    return math.floor((pos / 100) * thumbState.numThumbs)
+end
+function getThumbDeltaTime(thumbState)
+    if thumbState.delta == nil or thumbState.index == nil then
+        return 0
+    end
+    return thumbState.delta * thumbState.index
+end
+function updateThumbIndex(thumbState, videoPath, pos)
+    local fileChanged = not (videoPath == thumbState.videoPath)
+    if fileChanged then
+        thumbState.videoPath = videoPath
+
+        local curVideoPath = mp.get_property_native("path", nil)
+        local videoDuration = 0
+        if not (curVideoPath == nil) and videoPath == curVideoPath then
+            videoDuration = mp.get_property_number("duration", nil)
+            if (videoDuration == nil) or videoDuration <= 0 then
+                videoDuration = 0
+            end
+        end
+        thumbState.videoDuration = videoDuration
+
+        local targetDelta = thumbState.videoDuration / thumb.numThumbnails
+        thumbState.delta = math.max(thumb.minDelta, math.min(thumb.maxDelta, targetDelta))
+        thumbState.numThumbs = math.min(math.floor(thumbState.videoDuration / thumbState.delta)+1, thumb.numThumbnails)
+    end
+
+    local thumbIndex = getThumbIndex(thumbState, pos)
+    local indexChanged = not (thumbState.index == thumbIndex)
+    if indexChanged then
+        thumbState.index = thumbIndex
+        local deltaTime = getThumbDeltaTime(thumbState)
+        thumbState.timestamp = mp.format_time(deltaTime)
+    end
+    return fileChanged or indexChanged
+end
+function requestThumbnail(thumbState, videoPath, timestamp, globalWidth, globalHeight)
+    -- msg.warn("requestThumbnail", thumbState.overlayId, timestamp, globalWidth, globalHeight)
+    -- Hide
     hideThumbnail(thumbState)
+    -- Reset
+    thumbState.rendered = false
+    thumbState.renderedIndex = nil
+    thumbState.renderFailed = false
     -- Request new thumbnail
     thumbState.renderRequested = true
     thumbState.videoPath = videoPath
-    thumbState.posTimestamp = posTimestamp
+    thumbState.timestamp = timestamp
     thumbState.globalWidth = globalWidth
     thumbState.globalHeight = globalHeight
     thumbState.renderAt = mp.get_time() + thumb.debounce
@@ -567,14 +610,14 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ass:append(tethysStyle.seekbarTimestamp)
     ass:append(timestampLabel)
 
-    local thumbChanged = not (seekbarThumb.pos == sliderPos)
+    local thumbChanged = updateThumbIndex(seekbarThumb, videoPath, sliderPos)
     if thumbChanged then
-        seekbarThumb.pos = sliderPos
+        -- msg.warn("thumbChanged", seekbarThumb.index, sliderPos)
         if tethys.showThumbnails and canShowThumb(videoPath) then
             requestThumbnail(
                 seekbarThumb,
-                videoPath,
-                thumbTimestamp,
+                seekbarThumb.videoPath,
+                seekbarThumb.timestamp,
                 thumbGlobalWidth,
                 thumbGlobalHeight
             )
@@ -657,7 +700,7 @@ function genThumbnailFfmpeg(thumbState)
         "ffmpeg",
         "-loglevel", "quiet",
         "-noaccurate_seek",
-        "-ss", thumbState.posTimestamp,
+        "-ss", thumbState.timestamp,
         "-i", thumbState.videoPath,
 
         "-frames:v", "1",
@@ -682,7 +725,7 @@ function genThumbnailMpv(thumbState)
 
         thumbState.videoPath,
 
-        "--start=" .. tostring(thumbState.posTimestamp),
+        "--start=" .. tostring(thumbState.timestamp),
         "-frames", "1",
         "--hr-seek=yes",
         "--no-audio",
@@ -748,9 +791,9 @@ function updateThumb(thumbState)
             return
         end
 
-        thumbState.renderedPos = thumbState.pos
+        thumbState.renderedIndex = thumbState.index
         thumbState.rendered = true
-        -- msg.warn("rendered", thumbState.rendered, "renderedPos", thumbState.renderedPos)
+        -- msg.warn("rendered", thumbState.rendered, "renderedIndex", thumbState.renderedIndex)
     end
 end
 
