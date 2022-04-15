@@ -732,7 +732,46 @@ function genThumbnailFfmpeg(thumbState)
     msg.warn(table.concat(ffmpegCommand, " "))
     return utils.subprocess({args=ffmpegCommand})
 end
-function genThumbnailMpv(thumbState)
+function checkThumbnailOutput(thumbState, ret)
+    local success = true
+    if ret.killed_by_us then
+        return nil
+    else
+        if ret.error or ret.status ~= 0 then
+            msg.error("Thumbnailing command failed!")
+            msg.error("process error:", ret.error)
+            msg.error("Process stdout:", ret.stdout)
+            success = false
+        end
+
+        if not file_exists(thumbState.thumbPath) then
+            msg.error("Thumbnail file missing!", thumbState.thumbPath)
+            success = false
+        end
+    end
+    return success
+end
+function genThumbCallback(thumbState, ret)
+    local success = checkThumbnailOutput(thumbState, ret)
+
+    if success == nil then
+        -- Killed by us, changing files, ignore
+        msg.debug("Changing files, subprocess killed")
+        thumbState.renderFailed = true
+        return
+    elseif not success then
+        -- Real failure
+        thumbState.renderFailed = true
+        tethys.showThumbnails = false
+        mp.osd_message("Thumbnailing failed, check console for details", 3.5)
+        return
+    end
+
+    thumbState.cachedIndexes[thumbState.index] = true
+    thumbState.renderedIndex = thumbState.index
+    thumbState.rendered = true
+end
+function genThumbnailMpv(thumbState, callback)
     -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
     local mpvCommand = {
         "mpv",
@@ -761,25 +800,6 @@ function genThumbnailMpv(thumbState)
     msg.warn(table.concat(mpvCommand, " "))
     return utils.subprocess({args=mpvCommand})
 end
-function checkThumbnailOutput(ret, thumbState)
-    local success = true
-    if ret.killed_by_us then
-        return nil
-    else
-        if ret.error or ret.status ~= 0 then
-            msg.error("Thumbnailing command failed!")
-            msg.error("process error:", ret.error)
-            msg.error("Process stdout:", ret.stdout)
-            success = false
-        end
-
-        if not file_exists(thumbState.thumbPath) then
-            msg.error("Thumbnail file missing!", thumbState.thumbPath)
-            success = false
-        end
-    end
-    return success
-end
 function updateThumb(thumbState)
     if tethys.showThumbnails and thumbState.renderRequested and thumbState.renderAt <= mp.get_time() then
         thumbState.renderRequested = false
@@ -792,25 +812,7 @@ function updateThumb(thumbState)
             genThumbnailFunc = genThumbnailFfmpeg
         end
         local ret = genThumbnailFunc(thumbState)
-        local success = checkThumbnailOutput(ret, thumbState)
-
-        if success == nil then
-            -- Killed by us, changing files, ignore
-            msg.debug("Changing files, subprocess killed")
-            thumbState.renderFailed = true
-            return
-        elseif not success then
-            -- Real failure
-            thumbState.renderFailed = true
-            tethys.showThumbnails = false
-            mp.osd_message("Thumbnailing failed, check console for details", 3.5)
-            return
-        end
-
-        thumbState.cachedIndexes[thumbState.index] = true
-        thumbState.renderedIndex = thumbState.index
-        thumbState.rendered = true
-        -- msg.warn("rendered", thumbState.rendered, "renderedIndex", thumbState.renderedIndex)
+        genThumbCallback(thumbState, ret)
     end
 end
 
