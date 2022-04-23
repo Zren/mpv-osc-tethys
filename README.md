@@ -6,7 +6,10 @@ This theme replaces [the built in `osc.lua`](https://github.com/mpv-player/mpv/b
 
 ### Install
 
-(1) Copy `osc_tethys.lua` and mpv's `autoload.lua` to `~/.config/mpv/scripts/` (`%APPDATA%\mpv\scripts\` on Windows).
+(1) Copy `osc_tethys.lua` and mpv's `autoload.lua` to
+
+* Linux: `~/.config/mpv/scripts/`
+* Windows: `%APPDATA%\mpv\scripts\` (`C:\Users\USER\AppData\Roaming\mpv\scripts\`)
 
 ```sh
 mkdir -p ~/.config/mpv/scripts/
