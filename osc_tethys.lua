@@ -328,10 +328,52 @@ function file_exists(name)
     return false
   end
 end
+-- Find an executable in PATH or CWD with the given name
+function find_executable(name)
+  local delim = ON_WINDOWS and ";" or ":"
+  local pwd = os.getenv("PWD") or utils.getcwd()
+  local path = os.getenv("PATH")
+  local env_path = pwd .. delim .. path -- Check CWD first
+  local result, filename
+  for path_dir in env_path:gmatch("[^"..delim.."]+") do
+    filename = join_paths(path_dir, name)
+    if file_exists(filename) then
+      result = filename
+      break
+    end
+  end
+  return result
+end
+-- Searches for an executable and caches the result if any
+local ExecutableFinder = { path_cache = {} }
+function ExecutableFinder:get_executable_path(name, raw_name)
+  name = ON_WINDOWS and not raw_name and (name .. ".exe") or name
+  if self.path_cache[name] == nil then
+    self.path_cache[name] = find_executable(name) or false
+  end
+  return self.path_cache[name]
+end
+
+-- osc_tethys.lua checks
+ExecutableFinder.hasChecked = false
+ExecutableFinder.hasFfmpeg = false
+ExecutableFinder.hasMpv = false
+ExecutableFinder.hasMpvNet = false
+function ExecutableFinder:check()
+    if ExecutableFinder.hasChecked then
+        return
+    end
+    ExecutableFinder.hasFfmpeg = ExecutableFinder:get_executable_path("ffmpeg")
+    ExecutableFinder.hasMpv = ExecutableFinder:get_executable_path("mpv")
+    ExecutableFinder.hasMpvNet = ExecutableFinder:get_executable_path("mpvnet")
+    ExecutableFinder.hasChecked = true
+    -- msg.warn("hasFfmpeg", ExecutableFinder.hasFfmpeg)
+    -- msg.warn("hasMpv", ExecutableFinder.hasMpv)
+    -- msg.warn("hasMpvNet", ExecutableFinder.hasMpvNet)
+end
 
 -- Thumbnail State
 local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
-local hasFfmpeg = true -- Hardcoded assumption
 local thumb = {
     overlayId = 1,
     debounce = 0.15, -- Wait 150ms before rendering Thumbnail
@@ -385,15 +427,14 @@ function thumbInit()
 end
 
 function canShowThumb(videoPath)
-    if not hasFfmpeg then
+    local isRemote = videoPath:find("://") ~= nil
+    ExecutableFinder:check()
+    if not (ExecutableFinder.hasMpv or ExecutableFinder.hasMpv or ExecutableFinder.hasFfmpeg) then
         return false
     end
-
-    local isRemote = videoPath:find("://") ~= nil
     if isRemote then
         return false
     end
-
     return true
 end
 
@@ -773,8 +814,12 @@ function genThumbCallback(thumbState, ret)
 end
 function genThumbnailMpv(thumbState, callback)
     -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
+    local mpvFilename = "mpv"
+    if not ExecutableFinder.hasMpv and ExecutableFinder.hasMpvNet then
+        mpvFilename = "mpvnet"
+    end
     local mpvCommand = {
-        "mpv",
+        mpvFilename,
         "--msg-level=all=error",
         "--hwdec=no",
 
