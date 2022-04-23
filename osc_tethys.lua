@@ -99,8 +99,13 @@ local tethys = {
     skipBy = 5, -- skipback/skipfrwd amount in seconds
     skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
+    pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
+    pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
+    showThumbnails = true, -- Show previews when hovering seekbar
+    showPlaylistThumbnails = false, -- Show previews when hovering playlist prev/next
 
     -- Sizes
+    thumbnailSize = 256, -- 16:9 = 256x144
     seekbarHeight = 20,
     controlsHeight = 64,
     buttonTooltipSize = 20,
@@ -150,6 +155,12 @@ tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] 
 
 tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
 
+tethys.isPictureInPicture = false
+tethys.pipWasFullscreen = false
+tethys.pipWasMaximized = false
+tethys.pipWasOnTop = false
+tethys.pipHadBorders = false
+
 
 -- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
 function genColorStyle(color)
@@ -194,6 +205,670 @@ local tethysStyle = {
     seekbarCache = genColorStyle(tethys.seekbarCacheColor),
     chapterTick = genColorStyle(tethys.chapterTickColor),
 }
+
+
+
+---- Playlist / Chapter Utils
+function getDeltaListItem(listKey, curKey, delta, clamp)
+    local pos = mp.get_property_number(curKey, 0) + 1
+    local count, limlist = limited_list(listKey, pos)
+    if count == 0 then
+        return nil
+    end
+
+    local curIndex = -1
+    for i, v in ipairs(limlist) do
+        if v.current then
+            curIndex = i
+            break
+        end
+    end
+
+    local deltaIndex = curIndex + delta
+    if curIndex == -1 then
+        return nil
+    elseif deltaIndex < 1 then
+        if clamp then
+            deltaIndex = 1
+        else
+            return nil
+        end
+    elseif deltaIndex > count then
+        if clamp then
+            deltaIndex = count
+        else
+            return nil
+        end
+    end
+
+    local deltaItem = limlist[deltaIndex]
+    return deltaIndex, deltaItem
+end
+
+function getDeltaChapter(delta)
+    local deltaIndex, deltaChapter = getDeltaListItem('chapter-list', 'chapter', delta, true)
+    if deltaChapter == nil then -- Video Done
+        return nil
+    end
+    deltaChapter = {
+        index = deltaIndex,
+        time = deltaChapter.time,
+        title = deltaChapter.title,
+        label = nil,
+    }
+    local label = deltaChapter.title
+    if label == nil then
+        label = string.format('Chapter %02d', deltaChapter.index)
+    end
+    -- local time = mp.format_time(deltaChapter.time)
+    -- deltaChapter.label = string.format('[%s] %s', time, label)
+    deltaChapter.label = label
+    return deltaChapter
+end
+
+function getDeltaPlaylistItem(delta)
+    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', delta, false)
+    if deltaItem == nil then
+        return nil
+    end
+    deltaItem = {
+        index = deltaIndex,
+        filename = deltaItem.filename,
+        title = deltaItem.title,
+        label = nil,
+    }
+    local label = deltaItem.title
+    if label == nil then
+        local _, filename = utils.split_path(deltaItem.filename)
+        label = filename
+    end
+    deltaItem.label = label
+    return deltaItem
+end
+
+----- Thumbnail
+-- Based on: https://github.com/TheAMM/mpv_thumbnail_script
+-- helpers.lua
+ON_WINDOWS = (package.config:sub(1,1) ~= '/')
+function is_absolute_path( path )
+  local tmp, is_win  = path:gsub("^[A-Z]:\\", "")
+  local tmp, is_unix = path:gsub("^/", "")
+  return (is_win > 0) or (is_unix > 0)
+end
+function join_paths(...)
+  local sep = ON_WINDOWS and "\\" or "/"
+  local result = "";
+  for i, p in pairs({...}) do
+    if p ~= "" then
+      if is_absolute_path(p) then
+        result = p
+      else
+        result = (result ~= "") and (result:gsub("[\\"..sep.."]*$", "") .. sep .. p) or p
+      end
+    end
+  end
+  return result:gsub("[\\"..sep.."]*$", "")
+end
+function create_directories(path)
+  local cmd
+  if ON_WINDOWS then
+    cmd = { args = {"cmd", "/c", "mkdir", path} }
+  else
+    cmd = { args = {"mkdir", "-p", path} }
+  end
+  utils.subprocess(cmd)
+end
+function file_exists(name)
+  local f = io.open(name, "rb")
+  if f ~= nil then
+    local ok, err, code = f:read(1)
+    io.close(f)
+    return code == nil
+  else
+    return false
+  end
+end
+-- Find an executable in PATH or CWD with the given name
+function find_executable(name)
+  local delim = ON_WINDOWS and ";" or ":"
+  local pwd = os.getenv("PWD") or utils.getcwd()
+  local path = os.getenv("PATH")
+  local env_path = pwd .. delim .. path -- Check CWD first
+  local result, filename
+  for path_dir in env_path:gmatch("[^"..delim.."]+") do
+    filename = join_paths(path_dir, name)
+    if file_exists(filename) then
+      result = filename
+      break
+    end
+  end
+  return result
+end
+-- Searches for an executable and caches the result if any
+local ExecutableFinder = { path_cache = {} }
+function ExecutableFinder:get_executable_path(name, raw_name)
+  name = ON_WINDOWS and not raw_name and (name .. ".exe") or name
+  if self.path_cache[name] == nil then
+    self.path_cache[name] = find_executable(name) or false
+  end
+  return self.path_cache[name]
+end
+
+-- osc_tethys.lua checks
+ExecutableFinder.hasChecked = false
+ExecutableFinder.hasFfmpeg = false
+ExecutableFinder.hasMpv = false
+ExecutableFinder.hasMpvNet = false
+function ExecutableFinder:check()
+    if ExecutableFinder.hasChecked then
+        return
+    end
+    ExecutableFinder.hasFfmpeg = ExecutableFinder:get_executable_path("ffmpeg")
+    ExecutableFinder.hasMpv = ExecutableFinder:get_executable_path("mpv")
+    ExecutableFinder.hasMpvNet = ExecutableFinder:get_executable_path("mpvnet")
+    ExecutableFinder.hasChecked = true
+    -- msg.warn("hasFfmpeg", ExecutableFinder.hasFfmpeg)
+    -- msg.warn("hasMpv", ExecutableFinder.hasMpv)
+    -- msg.warn("hasMpvNet", ExecutableFinder.hasMpvNet)
+end
+
+-- Thumbnail State
+local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
+local thumb = {
+    overlayId = 1,
+    debounce = 0.15, -- Wait 150ms before rendering Thumbnail
+    dirPath = join_paths(osCacheDir, "mpv_tethys"),
+    thumbPathFormat = join_paths(osCacheDir, "mpv_tethys", "thumb-%06d.gbra"),
+    playlistPathFormat = join_paths(osCacheDir, "mpv_tethys", "playlist-%06d.gbra"),
+    preferMpv = true,
+    mpvNoConfig = true,
+    mpvNoSub = true,
+    mpvNoYtdl = true,
+    numThumbnails = 150,
+    minDelta = 5, -- Min 5s between thumbnails
+    maxDelta = 90, -- Max 1m30 between thumbnails
+}
+function ThumbState()
+    return {
+        overlayId = 1,
+        visible = false,
+        wasVisible = false,
+        index = nil,
+        timestamp = nil,
+        rendered = false,
+        renderedIndex = nil,
+        renderFailed = false,
+        renderAt = nil,
+        thumbPath = nil,
+        videoPath = nil,
+        globalWidth = nil,
+        globalHeight = nil,
+    }
+end
+local seekbarThumb = ThumbState()
+seekbarThumb.overlayId = 1
+seekbarThumb.thumbPathFormat = thumb.thumbPathFormat
+seekbarThumb.videoDuration = nil
+seekbarThumb.delta = nil
+seekbarThumb.cachedIndexes = {}
+local playlistThumb = ThumbState()
+playlistThumb.overlayId = 2
+playlistThumb.thumbPathFormat = thumb.playlistPathFormat
+playlistThumb.thumbPath = playlistThumb.thumbPathFormat:format(1)
+
+
+-- Funcs
+function thumbInit()
+    -- Check if the thumbnail already exists and is the correct size
+    local thumbDir = io.open(thumb.dirPath, "rb")
+    if thumbDir == nil then
+        create_directories(thumb.dirPath)
+    end
+end
+
+function canShowThumb(videoPath)
+    local isRemote = videoPath:find("://") ~= nil
+    ExecutableFinder:check()
+    if not (ExecutableFinder.hasMpv or ExecutableFinder.hasMpv or ExecutableFinder.hasFfmpeg) then
+        return false
+    end
+    if isRemote then
+        return false
+    end
+    return true
+end
+
+function showThumbnail(thumbState, globalX, globalY)
+    -- https://mpv.io/manual/master/#command-interface-overlay-add
+    -- msg.warn("showThumbnail", thumbState.overlayId)
+    mp.command_native({
+        "overlay-add", thumbState.overlayId,
+        globalX, globalY,
+        thumbState.thumbPath,
+        0, -- byte offset
+        "bgra", -- image format
+        thumbState.globalWidth, thumbState.globalHeight,
+        thumbState.globalWidth * 4, -- "stride"
+    })
+    thumbState.visible = true
+end
+function hideThumbnail(thumbState)
+    -- https://mpv.io/manual/master/#command-interface-overlay-remove
+    -- msg.warn("hideThumbnail", thumbState.overlayId)
+    mp.command_native({
+        "overlay-remove", thumbState.overlayId,
+    })
+end
+function getThumbIndex(thumbState, pos)
+    -- pos is video (0.0% .. 100.0%)
+    return math.floor((pos / 100) * thumbState.numThumbs)
+end
+function getThumbDeltaTime(thumbState)
+    if thumbState.delta == nil or thumbState.index == nil then
+        return 0
+    end
+    return thumbState.delta * thumbState.index
+end
+function updateThumbIndex(thumbState, videoPath, pos)
+    local fileChanged = not (videoPath == thumbState.videoPath)
+    if fileChanged then
+        thumbState.videoPath = videoPath
+
+        local curVideoPath = mp.get_property_native("path", nil)
+        local videoDuration = 0
+        if not (curVideoPath == nil) and videoPath == curVideoPath then
+            videoDuration = mp.get_property_number("duration", nil)
+            if (videoDuration == nil) or videoDuration <= 0 then
+                videoDuration = 0
+            end
+        end
+        thumbState.videoDuration = videoDuration
+
+        local targetDelta = thumbState.videoDuration / thumb.numThumbnails
+        thumbState.delta = math.max(thumb.minDelta, math.min(thumb.maxDelta, targetDelta))
+        thumbState.numThumbs = math.min(math.floor(thumbState.videoDuration / thumbState.delta)+1, thumb.numThumbnails)
+        thumbState.cachedIndexes = {}
+    end
+
+    local thumbIndex = getThumbIndex(thumbState, pos)
+    local indexChanged = not (thumbState.index == thumbIndex)
+    if fileChanged or indexChanged then
+        thumbState.index = thumbIndex
+        thumbState.thumbPath = thumbState.thumbPathFormat:format(thumbState.index)
+        local deltaTime = getThumbDeltaTime(thumbState)
+        thumbState.timestamp = mp.format_time(deltaTime)
+    end
+    return fileChanged or indexChanged
+end
+function requestThumbnail(thumbState, videoPath, timestamp, globalWidth, globalHeight)
+    -- msg.warn("requestThumbnail", thumbState.overlayId, timestamp, globalWidth, globalHeight)
+
+    if not ((thumbState.globalWidth == globalWidth) and (thumbState.globalHeight == globalHeight)) then
+        thumbState.globalWidth = globalWidth
+        thumbState.globalHeight = globalHeight
+        thumbState.cachedIndexes = {}
+    end
+
+    thumbState.videoPath = videoPath
+    thumbState.timestamp = timestamp
+
+    if thumbState.cachedIndexes[thumbState.index] then
+        thumbState.rendered = true
+        thumbState.renderedIndex = thumbState.index
+        return
+    else
+        -- Hide
+        hideThumbnail(thumbState)
+        -- Reset
+        thumbState.rendered = false
+        thumbState.renderedIndex = nil
+        thumbState.renderFailed = false
+        -- Request new thumbnail
+        thumbState.renderRequested = true
+        thumbState.renderAt = mp.get_time() + thumb.debounce
+    end
+end
+function thumbPreRender(thumbState)
+    thumbState.wasVisible = thumbState.visible
+    thumbState.visible = false
+end
+function thumbPostRender(thumbState)
+    if not thumbState.visible and thumbState.wasVisible then
+        hideThumbnail(thumbState)
+    end
+end
+function preRenderThumbnails()
+    thumbPreRender(seekbarThumb)
+    thumbPreRender(playlistThumb)
+end
+function postRenderThumbnails()
+    thumbPostRender(seekbarThumb)
+    thumbPostRender(playlistThumb)
+end
+
+-- Render Utils
+-- From: Slider.tooltipF(pos)
+function formatTimestamp(percent)
+    local duration = mp.get_property_number("duration", nil)
+    if not ((duration == nil) or (percent == nil)) then
+        local sec = duration * (percent / 100)
+        return mp.format_time(sec)
+    else
+        return ""
+    end
+end
+
+-- Seekbar Tooltip
+function renderThumbnailTooltip(pos, sliderPos, ass)
+    local tooltipBgColor = "FFFFFF"
+    local tooltipBgAlpha = 80
+    local thumbOutline = 3
+
+    local videoPath = mp.get_property_native("path", nil)
+    local videoDuration = mp.get_property_number("duration", nil)
+    -- msg.warn("sliderPos", sliderPos, "videoDuration", videoDuration, "videoPath", videoPath)
+    if (videoPath == nil) or (videoDuration == nil) or (sliderPos == nil) then
+        return
+    end
+    local thumbTime = videoDuration * (sliderPos / 100)
+    local thumbTimestamp = mp.format_time(thumbTime) -- ffmpeg requires "HH:MM:SS.zzz" for seeking
+    local timestampLabel = thumbTimestamp
+    -- msg.warn("thumbTime", thumbTime, "timestampLabel", timestampLabel)
+
+    ---- Geometry
+    local scaleX, scaleY = get_virt_scale_factor()
+    local videoDecParams = mp.get_property_native("video-dec-params")
+    local videoWidth = videoDecParams.dw
+    local videoHeight = videoDecParams.dh
+    if not (videoWidth and videoHeight) then
+        return
+    end
+    local thumbWidth, thumbHeight
+    if videoWidth > videoHeight then
+        thumbWidth = tethys.thumbnailSize
+        thumbHeight = math.floor(videoHeight * tethys.thumbnailSize / videoWidth)
+    else
+        thumbWidth = math.floor(videoWidth * tethys.thumbnailSize / videoHeight)
+        thumbHeight = tethys.thumbnailSize
+    end
+
+    local thumbGlobalWidth = math.floor(thumbWidth / scaleX)
+    local thumbGlobalHeight = math.floor(thumbHeight / scaleY)
+    -- msg.warn("thumbWidth", thumbWidth, "thumbHeight", thumbHeight, "thumbGlobalWidth", thumbGlobalWidth, "thumbGlobalHeight", thumbGlobalHeight)
+
+    local chapter = get_chapter(thumbTime)
+    local hasChapter = not (chapter == nil) and chapter.title and chapter.title ~= ""
+    local chapterLabel = ""
+    local chapterHeight = 0
+    if hasChapter then
+        chapterHeight = tethys.seekbarTimestampSize
+        chapterLabel = chapter.title
+    end
+
+    local timestampWidth = thumbWidth
+    local timestampHeight = tethys.seekbarTimestampSize
+
+    local bgHeight = thumbOutline + thumbHeight + thumbOutline
+
+    local tooltipWidth = thumbOutline + thumbWidth + thumbOutline
+    local tooltipHeight = bgHeight + chapterHeight + timestampHeight
+
+
+    -- Note: pos x,y is an=2 (bottom-center)
+    local windowWidth = osc_param.playresx
+    local tooltipX = math.floor(pos.x - tooltipWidth/2)
+    local tooltipY = math.floor(pos.y - tooltipHeight)
+    local textAn = 5 -- x,y is center
+    local isLongChapter
+    if tooltipX < 0 then
+        tooltipX = 0
+        textAn = 4 -- x,y is left-center
+    elseif windowWidth - tooltipWidth < tooltipX then
+        tooltipX = windowWidth - tooltipWidth
+        textAn = 6 -- x,y is right-center
+    end
+
+    local thumbX = tooltipX + thumbOutline
+    local thumbY = tooltipY + thumbOutline
+    local thumbGlobalX = math.floor(thumbX / scaleX)
+    local thumbGlobalY = math.floor(thumbY / scaleY)
+    -- msg.warn("thumbX", thumbX, "thumbY", thumbY, "thumbGlobalX", thumbGlobalX, "thumbGlobalY", thumbGlobalY)
+
+
+    local longChapterTitle = chapterLabel:len() >= 30
+    local chapterAn = longChapterTitle and textAn or 5 -- x,y is center
+    local chapterX
+    if chapterAn == 4 then -- Left-Center
+        chapterX = thumbX
+    elseif chapterAn == 6 then -- Right-Center
+        chapterX = thumbX + thumbWidth
+    else -- Center
+        chapterX = thumbX + math.floor(thumbWidth/2)
+    end
+    local chapterY = thumbY + thumbHeight + math.floor(chapterHeight/2)
+
+    local timestampAn = 5 -- x,y is center
+    local timestampX = thumbX + math.floor(thumbWidth/2)
+    local timestampY = thumbY + thumbHeight + chapterHeight + math.floor(timestampHeight/2)
+
+    ---- Chapter
+    if hasChapter then
+        ass:new_event()
+        ass:pos(chapterX, chapterY)
+        ass:an(chapterAn)
+        ass:append(tethysStyle.seekbarTimestamp)
+        ass:append(chapterLabel)
+    end
+
+    ---- Timestamp
+    ass:new_event()
+    ass:pos(timestampX, timestampY)
+    ass:an(timestampAn)
+    ass:append(tethysStyle.seekbarTimestamp)
+    ass:append(timestampLabel)
+
+    local thumbChanged = updateThumbIndex(seekbarThumb, videoPath, sliderPos)
+    if thumbChanged then
+        -- msg.warn("thumbChanged", seekbarThumb.index, sliderPos)
+        if tethys.showThumbnails and canShowThumb(videoPath) then
+            requestThumbnail(
+                seekbarThumb,
+                seekbarThumb.videoPath,
+                seekbarThumb.timestamp,
+                thumbGlobalWidth,
+                thumbGlobalHeight
+            )
+        end
+    end
+
+    if tethys.showThumbnails and seekbarThumb.rendered then
+        ---- Thumb BG/Outline
+        ass:new_event()
+        ass:pos(tooltipX, tooltipY)
+        ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, tooltipBgAlpha))
+        ass:draw_start()
+        ass:rect_cw(0, 0, tooltipWidth, bgHeight)
+        ass:draw_stop()
+
+        ---- Thumb BG
+        if not (tooltipBgAlpha == 0) then
+            -- Overlay Image must be drawn on top of a solid color or else it'll look
+            -- like it was filtered.
+            ass:new_event()
+            ass:pos(thumbX, thumbY)
+            ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format(tooltipBgColor, 0))
+            ass:draw_start()
+            ass:rect_cw(0, 0, thumbWidth, thumbHeight)
+            ass:draw_stop()
+        end
+
+        ---- Render Thumbnail
+        showThumbnail(seekbarThumb, thumbGlobalX, thumbGlobalY)
+    end
+end
+
+-- Playlist Tooltip
+function renderPlaylistTooltip(pos, playlistDelta, ass)
+    local deltaItem = getDeltaPlaylistItem(playlistDelta)
+    if deltaItem == nil then
+        return nil
+    end
+
+    local videoPath = deltaItem.filename
+    local thumbTimestamp = mp.format_time(0.5)
+    local thumbGlobalWidth = 100
+    local thumbGlobalHeight = 100
+
+    local thumbChanged = not (playlistThumb.videoPath == videoPath)
+    if thumbChanged and tethys.showPlaylistThumbnails and canShowThumb(videoPath) then
+        requestThumbnail(
+            playlistThumb,
+            videoPath,
+            thumbTimestamp,
+            thumbGlobalWidth,
+            thumbGlobalHeight
+        )
+    end
+    if tethys.showPlaylistThumbnails and playlistThumb.rendered then
+        ---- Render Thumbnail
+        -- pos.an is bottom (1,2,3)
+        local scaleX, scaleY = get_virt_scale_factor()
+        local thumbWidth = playlistThumb.globalWidth * scaleX
+        local thumbHeight = playlistThumb.globalHeight * scaleX
+        local thumbX = pos.x - math.floor(thumbWidth/2)
+        local thumbY = pos.y - thumbHeight
+        local thumbGlobalX = math.floor(thumbX / scaleX)
+        local thumbGlobalY = math.floor(thumbY / scaleY)
+
+        ass:new_event()
+        ass:pos(thumbX, thumbY)
+        ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format("000000", 0))
+        ass:draw_start()
+        ass:rect_cw(0, 0, thumbWidth, thumbHeight)
+        ass:draw_stop()
+
+        showThumbnail(playlistThumb, thumbGlobalX, thumbGlobalY)
+    end
+end
+
+function genThumbnailFfmpeg(thumbState)
+    -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
+    local ffmpegCommand = {
+        "ffmpeg",
+        "-loglevel", "quiet",
+        "-noaccurate_seek",
+        "-ss", thumbState.timestamp,
+        "-i", thumbState.videoPath,
+
+        "-frames:v", "1",
+        "-an",
+
+        "-vf", ("scale=%d:%d"):format(thumbState.globalWidth, thumbState.globalHeight),
+        "-c:v", "rawvideo",
+        "-pix_fmt", "bgra",
+        "-f", "rawvideo",
+
+        "-y", thumbState.thumbPath,
+    }
+    msg.warn(table.concat(ffmpegCommand, " "))
+    return utils.subprocess({args=ffmpegCommand})
+end
+function checkThumbnailOutput(thumbState, ret)
+    local success = true
+    if ret.killed_by_us then
+        return nil
+    else
+        if ret.error or ret.status ~= 0 then
+            msg.error("Thumbnailing command failed!")
+            msg.error("process error:", ret.error)
+            msg.error("Process stdout:", ret.stdout)
+            success = false
+        end
+
+        if not file_exists(thumbState.thumbPath) then
+            msg.error("Thumbnail file missing!", thumbState.thumbPath)
+            success = false
+        end
+    end
+    return success
+end
+function genThumbCallback(thumbState, ret)
+    local success = checkThumbnailOutput(thumbState, ret)
+
+    if success == nil then
+        -- Killed by us, changing files, ignore
+        msg.debug("Changing files, subprocess killed")
+        thumbState.renderFailed = true
+        return
+    elseif not success then
+        -- Real failure
+        thumbState.renderFailed = true
+        tethys.showThumbnails = false
+        mp.osd_message("Thumbnailing failed, check console for details", 3.5)
+        return
+    end
+
+    thumbState.cachedIndexes[thumbState.index] = true
+    thumbState.renderedIndex = thumbState.index
+    thumbState.rendered = true
+end
+function genThumbnailMpv(thumbState, callback)
+    -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
+    local mpvFilename = "mpv"
+    if not ExecutableFinder.hasMpv and ExecutableFinder.hasMpvNet then
+        mpvFilename = "mpvnet"
+    end
+    local mpvCommand = {
+        mpvFilename,
+        "--msg-level=all=error",
+        "--hwdec=no",
+
+        thumbState.videoPath,
+
+        "--start=" .. tostring(thumbState.timestamp),
+        "-frames", "1",
+        "--hr-seek=yes",
+        "--no-audio",
+
+        ("-vf=scale=%d:%d"):format(thumbState.globalWidth, thumbState.globalHeight),
+        "--vf-add=format=bgra",
+        "--of=rawvideo",
+        "--ovc=rawvideo",
+        "--o=" .. thumbState.thumbPath,
+    }
+    if thumb.mpvNoConfig then table.insert(mpvCommand, "--no-config") end
+    if thumb.mpvNoSub then table.insert(mpvCommand, "--no-sub") end
+    
+    local hasYtdl = mp.get_property_native("ytdl") == true
+    if thumb.mpvNoYtdl or not hasYtdl then table.insert(mpvCommand, "--no-ytdl") end
+
+    msg.warn(table.concat(mpvCommand, " "))
+    return utils.subprocess({args=mpvCommand})
+end
+function updateThumb(thumbState)
+    if tethys.showThumbnails and thumbState.renderRequested and thumbState.renderAt <= mp.get_time() then
+        thumbState.renderRequested = false
+
+        ---- Generate Thumbnail
+        local genThumbnailFunc
+        if thumb.preferMpv then
+            genThumbnailFunc = genThumbnailMpv
+        else
+            genThumbnailFunc = genThumbnailFfmpeg
+        end
+        local ret = genThumbnailFunc(thumbState)
+        genThumbCallback(thumbState, ret)
+    end
+end
+
+local thumbTick = function()
+    -- msg.warn("thumbTick")
+    updateThumb(seekbarThumb)
+    updateThumb(playlistThumb)
+end
+
+local thumbTimer = mp.add_periodic_timer(0.1, thumbTick)
+
 
 -- internal states, do not touch
 local state = {
@@ -254,6 +929,8 @@ local tethysIcon_skipback = "{\\p1}m 1.839456 0   l 1.839456 9.57764   l 11.4170
 local tethysIcon_skipfrwd = "{\\p1}m 24.81566 0   l 24.81566 9.57764   l 15.238019 9.57764   l 15.238019 6.385093   l 19.16427 6.385093   b 15.78696 3.999689 11.234036 3.879191 7.695213 6.243757   b 3.666234 8.935835 2.107925 14.07368 3.962262 18.550442   b 5.816597 23.027205 10.552025 25.558703 15.304532 24.613371   b 20.057037 23.668038 23.462569 19.515531 23.462569 14.669918   l 26.655116 14.669918   b 26.655116 21.018992 22.155155 26.50492 15.928076 27.743563   b 9.700997 28.982206 3.442582 25.638369 1.012897 19.772589   b -1.416788 13.906809 0.643206 7.114815 5.922268 3.587458   b 8.561799 1.82378 11.64672 1.117148 14.633182 1.411289   b 17.140507 1.658238 19.577144 2.61433 21.623113 4.24218   l 21.623113 0{\\p0}"
 local tethysIcon_ch_prev = "{\\p1}m 14.611669 6   b 13.129442 7.026159 13.129442 7.473842 14.611669 8.500001   b 19.629738 11.974048 24.111671 15 25.111671 15   b 26.11167 15 26.11167 13.500001 26.11167 7.25   b 26.11167 1.500001 26.11167 0 25.111671 0   b 24.111671 0 19.629738 2.525952 14.611669 6   m 1.11167 6   b -0.370557 7.026159 -0.370557 7.473842 1.11167 8.500001   b 6.129739 11.974048 10.611672 15 11.611671 15   b 12.611671 15 12.611671 13.500001 12.611671 7.25   b 12.611671 1.500001 12.611671 0 11.611671 0   b 10.611672 0 6.129739 2.525952 1.11167 6{\\p0}"
 local tethysIcon_ch_next = "{\\p1}m 11.500001 6   b 12.982228 7.026159 12.982228 7.473842 11.500001 8.500001   b 6.481932 11.974048 1.999999 15 1 15   b 0 15 0 13.500001 0 7.25   b 0 1.500001 0 0 1 0   b 1.999999 0 6.481932 2.525952 11.500001 6   m 25 6   b 26.482227 7.026159 26.482227 7.473842 25 8.500001   b 19.981931 11.974048 15.499998 15 14.499999 15   b 13.499999 15 13.499999 13.500001 13.499999 7.25   b 13.499999 1.500001 13.499999 0 14.499999 0   b 15.499998 0 19.981931 2.525952 25 6{\\p0}"
+local tethysIcon_pip_enter = "{\\p1}m 12 13   l 20 13   l 20 18   l 12 18   m 0 2   b 0 2 0 19 0 20   b 0 21 1 22 2 22   b 3 22 22 22 22 22   b 23 22 24 21 24 20   l 24 2   b 24 1 23 0 22 0   l 2 0   b 1 0 0 1 0 2   m 2 2   l 22 2   l 22 20   l 2 20{\\p0}"
+local tethysIcon_pip_exit = "{\\p1}m 12 0   l 12 2   l 22 2   l 22 20   l 2 20   l 2 13   l 0 13   l 0 20   b 0 21 1 22 2 22   l 22 22   b 23 22 24 21 24 20   l 24 2   b 24 1 23 0 22 0   m 0 0   l 0 9   l 2 9   l 2 4   l 16 17   l 18 15   l 4 2   l 9 2   l 9 0{\\p0}"
 local tethysIcon_pl_prev = "{\\p1}m 9.133332 8.8   b 6.959399 10.305034 6.959399 10.961635 9.133332 12.466668   b 16.493166 17.561937 23.066668 22 24.533334 22   b 26 22 26 19.800002 26 10.633333   b 26 2.200001 26 0 24.533334 0   b 23.066668 0 16.493166 3.70473 9.133332 8.8   m 0 20.103196   b 0 22.631901 6.574631 22.631901 6.574631 20.105396   l 6.574631 1.896528   b 6.574631 -0.632176 0 -0.632176 0 1.896528{\\p0}"
 local tethysIcon_pl_next = "{\\p1}m 16.866668 8.8   b 19.040601 10.305034 19.040601 10.961635 16.866668 12.466668   b 9.506834 17.561937 2.933332 22 1.466666 22   b 0 22 0 19.800002 0 10.633333   b 0 2.200001 0 0 1.466666 0   b 2.933332 0 9.506834 3.70473 16.866668 8.8   m 26 20.103196   b 26 22.631901 19.425369 22.631901 19.425369 20.105396   l 19.425369 1.896528   b 19.425369 -0.632176 26 -0.632176 26 1.896528{\\p0}"
 
@@ -456,6 +1133,49 @@ function ass_draw_rr_h_ccw(ass, x0, y0, x1, y1, r1, hexagon, r2)
     else
         ass:round_rect_ccw(x0, y0, x1, y1, r1, r2)
     end
+end
+
+
+--
+-- Picture In Picture
+--
+
+function togglePictureInPicture()
+    local isPiP = tethys.isPictureInPicture
+    if isPiP then -- Disable
+        mp.commandv('set', 'on-all-workspaces', 'no')
+        if not tethys.pipWasOnTop then
+            mp.commandv('set', 'ontop', 'no')
+        end
+        if tethys.pipHadBorders then
+            mp.commandv('set', 'border', 'yes')
+        end
+        local videoDecParams = mp.get_property_native("video-dec-params")
+        local videoWidth = videoDecParams.dw
+        local videoHeight = videoDecParams.dh
+        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
+        if tethys.pipWasMaximized then
+            mp.commandv('set', 'window-maximized', 'yes')
+        end
+        if tethys.pipWasFullscreen then
+            mp.commandv('set', 'fullscreen', 'yes')
+        end
+    else -- Enable
+        tethys.pipWasFullscreen = state.fullscreen
+        tethys.pipWasMaximized = state.maximized
+        tethys.pipWasOnTop = mp.get_property('ontop') == "yes"
+        tethys.pipHadBorders = state.border
+        mp.commandv('set', 'fullscreen', 'no')
+        mp.commandv('set', 'window-maximized', 'no')
+        mp.commandv('set', 'border', 'no')
+        mp.commandv('set', 'geometry', tethys.pipGeometry)
+        mp.commandv('set', 'ontop', 'yes')
+        if tethys.pipAllWorkspaces then
+            mp.commandv('set', 'on-all-workspaces', 'yes')
+        end
+    end
+    tethys.isPictureInPicture = not isPiP
+    utils.shared_script_property_set("pictureinpicture", tostring(tethys.isPictureInPicture))
 end
 
 
@@ -904,8 +1624,8 @@ function render_elements(master_ass)
             if not (element.slider.tooltipF == nil) then
 
                 if mouse_hit(element) then
-                    local sliderpos = get_slider_value(element)
-                    local tooltiplabel = element.slider.tooltipF(sliderpos)
+                    local sliderPos = get_slider_value(element)
+                    local tooltipLabel = element.slider.tooltipF(sliderPos)
 
                     local an = slider_lo.tooltip_an
 
@@ -920,12 +1640,12 @@ function render_elements(master_ass)
                     local tx = get_virt_mouse_pos()
                     if (slider_lo.adjust_tooltip) then
                         if (an == 2) then
-                            if (sliderpos < (s_min + 3)) then
+                            if (sliderPos < (s_min + 3)) then
                                 an = an - 1
-                            elseif (sliderpos > (s_max - 3)) then
+                            elseif (sliderPos > (s_max - 3)) then
                                 an = an + 1
                             end
-                        elseif (sliderpos > (s_max-s_min)/2) then
+                        elseif (sliderPos > (s_max-s_min)/2) then
                             an = an + 1
                             tx = tx - 5
                         else
@@ -934,13 +1654,14 @@ function render_elements(master_ass)
                         end
                     end
 
-                    -- tooltip label
-                    elem_ass:new_event()
-                    elem_ass:pos(tx, ty)
-                    elem_ass:an(an)
-                    elem_ass:append(slider_lo.tooltip_style)
-                    ass_append_alpha(elem_ass, slider_lo.alpha, 0)
-                    elem_ass:append(tooltiplabel)
+                    -- Tooltip + Thumbnail
+                    -- https://github.com/TheAMM/mpv_thumbnail_script
+                    local thumbPos = {
+                        x=get_virt_mouse_pos(),
+                        y=ty,
+                        an=2, -- x,y is bottom-center
+                    }
+                    renderThumbnailTooltip(thumbPos, sliderPos, elem_ass)
 
                 end
             end
@@ -1020,15 +1741,27 @@ function render_elements(master_ass)
                 if not (type(labelList) == "table") then
                     labelList = {}
                 end
+                local rowY = ty
                 for i, label in ipairs(labelList) do
+                    rowY = ty - ((i-1) * tethys.buttonTooltipSize)
                     new_ass_node(elem_ass)
-                    elem_ass:pos(tx, ty - ((i-1) * tethys.buttonTooltipSize))
+                    elem_ass:pos(tx, rowY)
                     elem_ass:an(button_lo.tooltip_an)
                     elem_ass:append(button_lo.tooltip_style)
                     ass_append_alpha(elem_ass, tooltipAlpha, 0)
                     elem_ass.scale = 1
                     elem_ass:append(label)
                     elem_ass.scale = 4
+                end
+                rowY = rowY - tethys.buttonTooltipSize
+
+                if not (button_lo.playlist == nil) then
+                    local thumbPos = {
+                        x = tx,
+                        y = rowY,
+                        an = button_lo.tooltip_an,
+                    }
+                    renderPlaylistTooltip(thumbPos, button_lo.playlist, elem_ass)
                 end
             end
         end
@@ -1195,6 +1928,7 @@ function add_layout(name)
             elements[name].layout.button = {
                 maxchars = nil,
                 hover_style = tethysStyle.buttonHovered,
+                playlist = nil,
             }
         elseif (elements[name].type == "slider") then
             -- slider defaults
@@ -1883,83 +2617,6 @@ layouts["topbar"] = function()
     bar_layout(1)
 end
 
-function getDeltaListItem(listKey, curKey, delta, clamp)
-    local pos = mp.get_property_number(curKey, 0) + 1
-    local count, limlist = limited_list(listKey, pos)
-    if count == 0 then
-        return nil
-    end
-
-    local curIndex = -1
-    for i, v in ipairs(limlist) do
-        if v.current then
-            curIndex = i
-            break
-        end
-    end
-
-    local deltaIndex = curIndex + delta
-    if curIndex == -1 then
-        return nil
-    elseif deltaIndex < 1 then
-        if clamp then
-            deltaIndex = 1
-        else
-            return nil
-        end
-    elseif deltaIndex > count then
-        if clamp then
-            deltaIndex = count
-        else
-            return nil
-        end
-    end
-
-    local deltaItem = limlist[deltaIndex]
-    return deltaIndex, deltaItem
-end
-
-function getDeltaChapter(delta)
-    local deltaIndex, deltaChapter = getDeltaListItem('chapter-list', 'chapter', delta, true)
-    if deltaChapter == nil then -- Video Done
-        return nil
-    end
-    deltaChapter = {
-        index = deltaIndex,
-        time = deltaChapter.time,
-        title = deltaChapter.title,
-        label = nil,
-    }
-    local label = deltaChapter.title
-    if label == nil then
-        label = string.format('Chapter %02d', deltaChapter.index)
-    end
-    -- local time = mp.format_time(deltaChapter.time)
-    -- deltaChapter.label = string.format('[%s] %s', time, label)
-    deltaChapter.label = label
-    return deltaChapter
-end
-
-function getDeltaPlaylistItem(delta)
-    local deltaIndex, deltaItem = getDeltaListItem('playlist', 'playlist-pos', delta, false)
-    if deltaItem == nil then -- Video Done
-        return nil
-    end
-    deltaItem = {
-        index = deltaIndex,
-        filename = deltaItem.filename,
-        title = deltaItem.title,
-        label = nil,
-    }
-    local label = deltaItem.title
-    if label == nil then
-        local _, filename = utils.split_path(deltaItem.filename)
-        label = filename
-    end
-    deltaItem.label = label
-    return deltaItem
-end
-
 layouts["tethys"] = function()
     local direction = -1
     local osc_geo = {
@@ -2201,6 +2858,22 @@ layouts["tethys"] = function()
         rightSectionWidth = rightSectionWidth + geo.w
     end
 
+    -- PictureInPicture button
+    geo = {
+        x = rightX - rightSectionWidth - smallButtonSize/2,
+        y = line1Y + buttonH/2,
+        an = 5, -- x,y is left-center
+        w = smallButtonSize,
+        h = smallButtonSize,
+    }
+    lo = add_layout("tog_pip")
+    lo.geometry = geo
+    lo.style = tethysStyle.smallButton
+    setButtonTooltip(lo, "PictureInPicture")
+    if elements["tog_pip"].visible then
+        rightSectionWidth = rightSectionWidth + geo.w
+    end
+
     -- Subtitle track
     local trackButtonSize = tethys.trackButtonSize
     local trackButtonWidth = trackButtonSize * 2.5
@@ -2249,6 +2922,7 @@ layouts["tethys"] = function()
     lo = add_layout("pl_next")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
+    lo.button.playlist = 1
     setButtonTooltip(lo, function()
         local shortcutLabel = "Next (> or Enter)"
         local nextItem = getDeltaPlaylistItem(1)
@@ -2273,6 +2947,7 @@ layouts["tethys"] = function()
     lo = add_layout("pl_prev")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
+    lo.button.playlist = -1
     setButtonTooltip(lo, function()
         local shortcutLabel = "Previous (<)"
         local nextItem = getDeltaPlaylistItem(-1)
@@ -2627,6 +3302,19 @@ function osc_init()
     ne.eventresponder["shift+mbtn_left_down"] =
         function () show_message(get_tracklist("sub"), 2) end
 
+    --tog_pip
+    ne = new_element("tog_pip", "button")
+    ne.content = function ()
+        if (tethys.isPictureInPicture) then
+            return tethysIcon_pip_exit
+        else
+            return tethysIcon_pip_enter
+        end
+    end
+    ne.eventresponder["mbtn_left_up"] = function ()
+        togglePictureInPicture()
+    end
+
     --tog_fs
     ne = new_element("tog_fs", "button")
     ne.content = function ()
@@ -2850,6 +3538,8 @@ function osc_init()
     ne.eventresponder["wheel_down_press"] =
         function () mp.commandv("osd-auto", "add", "volume", -5) end
 
+    -- thumbnails
+    thumbInit()
 
     -- load layout
     layouts[user_opts.layout]()
@@ -2878,7 +3568,7 @@ function update_margins()
     local margins = osc_param.video_margins
 
     -- Don't use margins if it's visible only temporarily.
-    if (not state.osc_visible) or (get_hidetimeout() >= 0) or
+    if (not state.osc_visible) or
        (state.fullscreen and not user_opts.showfullscreen) or
        (not state.fullscreen and not user_opts.showwindowed)
     then
@@ -3180,10 +3870,16 @@ function render()
     -- Messages
     render_message(ass)
 
+    -- PreRender
+    preRenderThumbnails()
+
     -- actual OSC
     if state.osc_visible then
         render_elements(ass)
     end
+
+    -- PostRender
+    postRenderThumbnails()
 
     -- submit
     set_osd(osc_param.playresy * osc_param.display_aspect,
