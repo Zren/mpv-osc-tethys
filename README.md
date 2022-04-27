@@ -17,11 +17,12 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
 (1) Copy `osc_tethys.lua` and mpv's `autoload.lua` to
 
 * Windows: `%APPDATA%\mpv\scripts\` (`C:\Users\USER\AppData\Roaming\mpv\scripts\`)
-  1. Create the `C:\Users\USER\AppData\Roaming\mpv\scripts\` folder if it doesn't exist. Replace `USER` with your username.
-  2. View the following scripts and Save Page As (`Ctrl+S`). Save the files in the `...\scripts\` directory.
+  1. Type `%APPDATA%\mpv\scripts\` in the File Explorer address bar and hit enter. You should be in `C:\Users\USER\AppData\Roaming\` where `USER` is your username.
+  2. Create the `C:\Users\USER\AppData\Roaming\mpv\scripts\` folder if it doesn't exist.
+  3. View the following scripts and Save Page As (`Ctrl+S`). Save the files in the `...\scripts\` directory.
       * https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/osc_tethys.lua
       * https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.lua
-  3. You should now have `C:\Users\USER\AppData\Roaming\mpv\scripts\osc_tethys.lua`
+  4. You should now have `C:\Users\USER\AppData\Roaming\mpv\scripts\osc_tethys.lua`
 * Linux: `~/.config/mpv/scripts/`
 
   ```sh
