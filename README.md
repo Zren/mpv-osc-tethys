@@ -20,6 +20,7 @@ wget https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.
 
 (2) Edit `~/.config/mpv/mpv.conf` (`%APPDATA%\mpv\mpv.conf` on Windows) to disable the default `osc.lua` and improve the window.
 
+* `osc=no` will disable the default `osc.lua`
 * `border=no` will remove the window titlebar and frame. You can still drag a window by dragging the video.
 * `keep-open=yes` will keep the player open after the video has finished.
 * `keepaspect-window=no` will allow black borders around the video when maximized or half screen.
@@ -53,6 +54,7 @@ WHEEL_DOWN    seek -5 exact    # backward
 * https://github.com/libass/libass/wiki/ASSv5-Override-Tags
 * https://github.com/libass/libass/wiki/Libass'-ASS-Extensions
 * https://mpv.io/manual/master/
+* https://bomi-player.github.io/gallery.html (Tethys icon set designed by Kotus Works)
 
 ### Other Themes
 
