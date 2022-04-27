@@ -2869,7 +2869,7 @@ layouts["tethys"] = function()
     lo = add_layout("tog_pip")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "PictureInPicture")
+    setButtonTooltip(lo, "Picture In Picture")
     if elements["tog_pip"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
