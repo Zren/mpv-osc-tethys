@@ -16,8 +16,8 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
 
 (1) Copy `osc_tethys.lua` and mpv's `autoload.lua` to
 
-* Linux: `~/.config/mpv/scripts/`
 * Windows: `%APPDATA%\mpv\scripts\` (`C:\Users\USER\AppData\Roaming\mpv\scripts\`)
+* Linux: `~/.config/mpv/scripts/`
 
 ```sh
 mkdir -p ~/.config/mpv/scripts/
