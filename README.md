@@ -2,7 +2,15 @@
 
 This theme replaces [the built in `osc.lua`](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) shipped with [mpv](https://github.com/mpv-player/mpv).
 
-![](https://user-images.githubusercontent.com/416367/159136619-1af2fc6f-7bde-4952-b975-83f1eec88a3e.png)
+![](https://i.imgur.com/cYqWlw5.png)
+
+Local files can show thumbnail previews (without [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
+
+![](https://i.imgur.com/FegXl3W.png)
+
+Picture-In-Picture button to position in the corner, on top of other windows, and on all virtual desktops.
+
+![](https://i.imgur.com/Ynlog81.png)
 
 ### Install
 
