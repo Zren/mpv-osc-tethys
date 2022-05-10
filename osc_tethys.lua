@@ -429,7 +429,7 @@ end
 function canShowThumb(videoPath)
     local isRemote = videoPath:find("://") ~= nil
     ExecutableFinder:check()
-    if not (ExecutableFinder.hasMpv or ExecutableFinder.hasMpv or ExecutableFinder.hasFfmpeg) then
+    if not (ExecutableFinder.hasMpv or ExecutableFinder.hasMpvNet or ExecutableFinder.hasFfmpeg) then
         return false
     end
     if isRemote then
