@@ -208,6 +208,22 @@ local tethysStyle = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---- Playlist / Chapter Utils
 function getDeltaListItem(listKey, curKey, delta, clamp)
     local pos = mp.get_property_number(curKey, 0) + 1
@@ -286,9 +302,32 @@ function getDeltaPlaylistItem(delta)
     return deltaItem
 end
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ----- Thumbnail
 -- Based on: https://github.com/TheAMM/mpv_thumbnail_script
 -- helpers.lua
+function clear_table(target)
+  for key, value in pairs(target) do
+    target[key] = nil
+  end
+end
 ON_WINDOWS = (package.config:sub(1,1) ~= '/')
 function is_absolute_path( path )
   local tmp, is_win  = path:gsub("^[A-Z]:\\", "")
@@ -372,6 +411,24 @@ function ExecutableFinder:check()
     -- msg.warn("hasMpvNet", ExecutableFinder.hasMpvNet)
 end
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- Thumbnail State
 local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
 local thumb = {
@@ -415,6 +472,600 @@ local playlistThumb = ThumbState()
 playlistThumb.overlayId = 2
 playlistThumb.thumbPathFormat = thumb.playlistPathFormat
 playlistThumb.thumbPath = playlistThumb.thumbPathFormat:format(1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---- Thumbnailer (https://github.com/TheAMM/mpv_thumbnail_script)
+-- mpv_thumbnail_script/src/options.lua
+local SCRIPT_NAME = "mpv_thumbnail_script"
+
+local default_cache_base = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
+
+local thumbnailer_options = {
+    -- The thumbnail directory
+    cache_directory = join_paths(default_cache_base, "mpv_thumbs_cache"),
+
+    ------------------------
+    -- Generation options --
+    ------------------------
+
+    -- Automatically generate the thumbnails on video load, without a keypress
+    autogenerate = true,
+
+    -- Only automatically thumbnail videos shorter than this (seconds)
+    autogenerate_max_duration = 3600, -- 1 hour
+
+    -- SHA1-sum filenames over this length
+    -- It's nice to know what files the thumbnails are (hence directory names)
+    -- but long URLs may approach filesystem limits.
+    hash_filename_length = 128,
+
+    -- Use mpv to generate thumbnail even if ffmpeg is found in PATH
+    -- ffmpeg does not handle ordered chapters (MKVs which rely on other MKVs)!
+    -- mpv is a bit slower, but has better support overall (eg. subtitles in the previews)
+    prefer_mpv = true,
+
+    -- Explicitly disable subtitles on the mpv sub-calls
+    mpv_no_sub = false,
+    -- Add a "--no-config" to the mpv sub-call arguments
+    mpv_no_config = false,
+    -- Add a "--profile=<mpv_profile>" to the mpv sub-call arguments
+    -- Use "" to disable
+    mpv_profile = "",
+    -- Output debug logs to <thumbnail_path>.log, ala <cache_directory>/<video_filename>/000000.bgra.log
+    -- The logs are removed after successful encodes, unless you set mpv_keep_logs below
+    mpv_logs = true,
+    -- Keep all mpv logs, even the succesfull ones
+    mpv_keep_logs = false,
+
+    -- Disable the built-in keybind ("T") to add your own
+    disable_keybinds = false,
+
+    ---------------------
+    -- Display options --
+    ---------------------
+
+    -- Move the thumbnail up or down
+    -- For example:
+    --   topbar/bottombar: 24
+    --   rest: 0
+    vertical_offset = 24,
+
+    -- Adjust background padding
+    -- Examples:
+    --   topbar:       0, 10, 10, 10
+    --   bottombar:   10,  0, 10, 10
+    --   slimbox/box: 10, 10, 10, 10
+    pad_top   = 10,
+    pad_bot   =  0,
+    pad_left  = 10,
+    pad_right = 10,
+
+    -- If true, pad values are screen-pixels. If false, video-pixels.
+    pad_in_screenspace = true,
+    -- Calculate pad into the offset
+    offset_by_pad = true,
+
+    -- Background color in BBGGRR
+    background_color = "000000",
+    -- Alpha: 0 - fully opaque, 255 - transparent
+    background_alpha = 80,
+
+    -- Keep thumbnail on the screen near left or right side
+    constrain_to_screen = true,
+
+    -- Do not display the thumbnailing progress
+    hide_progress = false,
+
+    -----------------------
+    -- Thumbnail options --
+    -----------------------
+
+    -- The maximum dimensions of the thumbnails (pixels)
+    thumbnail_width = 200,
+    thumbnail_height = 200,
+
+    -- The thumbnail count target
+    -- (This will result in a thumbnail every ~10 seconds for a 25 minute video)
+    thumbnail_count = 150,
+
+    -- The above target count will be adjusted by the minimum and
+    -- maximum time difference between thumbnails.
+    -- The thumbnail_count will be used to calculate a target separation,
+    -- and min/max_delta will be used to constrict it.
+
+    -- In other words, thumbnails will be:
+    --   at least min_delta seconds apart (limiting the amount)
+    --   at most max_delta seconds apart (raising the amount if needed)
+    min_delta = 5,
+    -- 120 seconds aka 2 minutes will add more thumbnails when the video is over 5 hours!
+    max_delta = 90,
+
+
+    -- Overrides for remote urls (you generally want less thumbnails!)
+    -- Thumbnailing network paths will be done with mpv
+
+    -- Allow thumbnailing network paths (naive check for "://")
+    thumbnail_network = false,
+    -- Override thumbnail count, min/max delta
+    remote_thumbnail_count = 60,
+    remote_min_delta = 15,
+    remote_max_delta = 120,
+
+    -- Try to grab the raw stream and disable ytdl for the mpv subcalls
+    -- Much faster than passing the url to ytdl again, but may cause problems with some sites
+    remote_direct_stream = true,
+}
+
+read_options(thumbnailer_options, SCRIPT_NAME)
+
+-- mpv_thumbnail_script/src/thumbnailer_shared.lua
+local Thumbnailer = {
+    cache_directory = thumbnailer_options.cache_directory,
+
+    state = {
+        ready = false,
+        available = false,
+        enabled = false,
+
+        thumbnail_template = nil,
+
+        thumbnail_delta = nil,
+        thumbnail_count = 0,
+
+        thumbnail_size = nil,
+
+        finished_thumbnails = 0,
+
+        -- List of thumbnail states (from 1 to thumbnail_count)
+        -- ready: 1
+        -- in progress: 0
+        -- not ready: -1
+        thumbnails = {},
+
+        worker_input_path = nil,
+        -- Extra options for the workers
+        worker_extra = {},
+    },
+    -- Set in register_client
+    worker_register_timeout = nil,
+    -- A timer used to wait for more workers in case we have none
+    worker_wait_timer = nil,
+    workers = {}
+}
+
+function Thumbnailer:clear_state()
+    clear_table(self.state)
+    self.state.ready = false
+    self.state.available = false
+    self.state.finished_thumbnails = 0
+    self.state.thumbnails = {}
+    self.state.worker_extra = {}
+end
+
+
+function Thumbnailer:on_file_loaded()
+    self:clear_state()
+end
+
+function Thumbnailer:on_thumb_ready(index)
+    self.state.thumbnails[index] = 1
+
+    -- Full recount instead of a naive increment (let's be safe!)
+    self.state.finished_thumbnails = 0
+    for i, v in pairs(self.state.thumbnails) do
+        if v > 0 then
+            self.state.finished_thumbnails = self.state.finished_thumbnails + 1
+        end
+    end
+end
+
+function Thumbnailer:on_thumb_progress(index)
+    self.state.thumbnails[index] = math.max(self.state.thumbnails[index], 0)
+end
+
+function Thumbnailer:on_start_file()
+    -- Clear state when a new file is being loaded
+    self:clear_state()
+end
+
+function Thumbnailer:on_video_change(params)
+    -- Gather a new state when we get proper video-dec-params and our state is empty
+    if params ~= nil then
+        if not self.state.ready then
+            self:update_state()
+        end
+    end
+end
+
+
+function Thumbnailer:update_state()
+    msg.debug("Gathering video/thumbnail state")
+
+    self.state.thumbnail_delta = self:get_delta()
+    self.state.thumbnail_count = self:get_thumbnail_count(self.state.thumbnail_delta)
+
+    -- Prefill individual thumbnail states
+    for i = 1, self.state.thumbnail_count do
+        self.state.thumbnails[i] = -1
+    end
+
+    self.state.thumbnail_template, self.state.thumbnail_directory = self:get_thumbnail_template()
+    self.state.thumbnail_size = self:get_thumbnail_size()
+
+    self.state.ready = true
+
+    local file_path = mp.get_property_native("path")
+    self.state.is_remote = file_path:find("://") ~= nil
+
+    self.state.available = false
+
+    -- Make sure the file has video (and not just albumart)
+    local track_list = mp.get_property_native("track-list")
+    local has_video = false
+    for i, track in pairs(track_list) do
+        if track.type == "video" and not track.external and not track.albumart then
+            has_video = true
+            break
+        end
+    end
+
+    if has_video and self.state.thumbnail_delta ~= nil and self.state.thumbnail_size ~= nil and self.state.thumbnail_count > 0 then
+        self.state.available = true
+    end
+
+    msg.debug("Thumbnailer.state:", utils.to_string(self.state))
+
+end
+
+
+function Thumbnailer:get_thumbnail_template()
+    local file_path = mp.get_property_native("path")
+    local is_remote = file_path:find("://") ~= nil
+
+    local filename = mp.get_property_native("filename/no-ext")
+    local filesize = mp.get_property_native("file-size", 0)
+
+    if is_remote then
+        filesize = 0
+    end
+
+    filename = filename:gsub('[^a-zA-Z0-9_.%-\' ]', '')
+    -- Hash overly long filenames (most likely URLs)
+    if #filename > thumbnailer_options.hash_filename_length then
+        filename = sha1.hex(filename)
+    end
+
+    local file_key = ("%s-%d"):format(filename, filesize)
+
+    local thumbnail_directory = join_paths(self.cache_directory, file_key)
+    local file_template = join_paths(thumbnail_directory, "%06d.bgra")
+    return file_template, thumbnail_directory
+end
+
+
+function Thumbnailer:get_thumbnail_size()
+    local video_dec_params = mp.get_property_native("video-dec-params")
+    local video_width = video_dec_params.dw
+    local video_height = video_dec_params.dh
+    if not (video_width and video_height) then
+        return nil
+    end
+
+    local w, h
+    if video_width > video_height then
+        w = thumbnailer_options.thumbnail_width
+        h = math.floor(video_height * (w / video_width))
+    else
+        h = thumbnailer_options.thumbnail_height
+        w = math.floor(video_width * (h / video_height))
+    end
+    return { w=w, h=h }
+end
+
+
+function Thumbnailer:get_delta()
+    local file_path = mp.get_property_native("path")
+    local file_duration = mp.get_property_native("duration")
+    local is_seekable = mp.get_property_native("seekable")
+
+    -- Naive url check
+    local is_remote = file_path:find("://") ~= nil
+
+    local remote_and_disallowed = is_remote
+    if is_remote and thumbnailer_options.thumbnail_network then
+        remote_and_disallowed = false
+    end
+
+    if remote_and_disallowed or not is_seekable or not file_duration then
+        -- Not a local path (or remote thumbnails allowed), not seekable or lacks duration
+        return nil
+    end
+
+    local thumbnail_count = thumbnailer_options.thumbnail_count
+    local min_delta = thumbnailer_options.min_delta
+    local max_delta = thumbnailer_options.max_delta
+
+    if is_remote then
+        thumbnail_count = thumbnailer_options.remote_thumbnail_count
+        min_delta = thumbnailer_options.remote_min_delta
+        max_delta = thumbnailer_options.remote_max_delta
+    end
+
+    local target_delta = (file_duration / thumbnail_count)
+    local delta = math.max(min_delta, math.min(max_delta, target_delta))
+
+    return delta
+end
+
+
+function Thumbnailer:get_thumbnail_count(delta)
+    if delta == nil then
+        return 0
+    end
+    local file_duration = mp.get_property_native("duration")
+
+    return math.ceil(file_duration / delta)
+end
+
+function Thumbnailer:get_closest(thumbnail_index)
+    -- Given a 1-based index, find the closest available thumbnail and return it's 1-based index
+
+    -- Check the direct thumbnail index first
+    if self.state.thumbnails[thumbnail_index] > 0 then
+        return thumbnail_index
+    end
+
+    local min_distance = self.state.thumbnail_count + 1
+    local closest = nil
+
+    -- Naive, inefficient, lazy. But functional.
+    for index, value in pairs(self.state.thumbnails) do
+        local distance = math.abs(index - thumbnail_index)
+        if distance < min_distance and value > 0 then
+            min_distance = distance
+            closest = index
+        end
+    end
+    return closest
+end
+
+function Thumbnailer:get_thumbnail_index(time_position)
+    -- Returns a 1-based thumbnail index for the given timestamp (between 1 and thumbnail_count, inclusive)
+    if self.state.thumbnail_delta and (self.state.thumbnail_count and self.state.thumbnail_count > 0) then
+        return math.min(math.floor(time_position / self.state.thumbnail_delta) + 1, self.state.thumbnail_count)
+    else
+        return nil
+    end
+end
+
+function Thumbnailer:get_thumbnail_path(time_position)
+    -- Given a timestamp, return:
+    --   the closest available thumbnail path (if any)
+    --   the 1-based thumbnail index calculated from the timestamp
+    --   the 1-based thumbnail index of the closest available (and used) thumbnail
+    -- OR nil if thumbnails are not available.
+
+    local thumbnail_index = self:get_thumbnail_index(time_position)
+    if not thumbnail_index then return nil end
+
+    local closest = self:get_closest(thumbnail_index)
+
+    if closest ~= nil then
+        return self.state.thumbnail_template:format(closest-1), thumbnail_index, closest
+    else
+        return nil, thumbnail_index, nil
+    end
+end
+
+function Thumbnailer:register_client()
+    self.worker_register_timeout = mp.get_time() + 2
+
+    mp.register_script_message("mpv_thumbnail_script-ready", function(index, path)
+        self:on_thumb_ready(tonumber(index), path)
+    end)
+    mp.register_script_message("mpv_thumbnail_script-progress", function(index, path)
+        self:on_thumb_progress(tonumber(index), path)
+    end)
+
+    mp.register_script_message("mpv_thumbnail_script-worker", function(worker_name)
+        if not self.workers[worker_name] then
+            msg.debug("Registered worker", worker_name)
+            self.workers[worker_name] = true
+            mp.commandv("script-message-to", worker_name, "mpv_thumbnail_script-slaved")
+        end
+    end)
+
+    -- Notify workers to generate thumbnails when video loads/changes
+    -- This will be executed after the on_video_change (because it's registered after it)
+    mp.observe_property("video-dec-params", "native", function()
+        local duration = mp.get_property_native("duration")
+        local max_duration = thumbnailer_options.autogenerate_max_duration
+
+        if duration ~= nil and self.state.available and thumbnailer_options.autogenerate then
+            -- Notify if autogenerate is on and video is not too long
+            if duration < max_duration or max_duration == 0 then
+                self:start_worker_jobs()
+            end
+        end
+    end)
+
+    local thumb_script_key = not thumbnailer_options.disable_keybinds and "T" or nil
+    mp.add_key_binding(thumb_script_key, "generate-thumbnails", function()
+        if self.state.available then
+            mp.osd_message("Started thumbnailer jobs")
+            self:start_worker_jobs()
+        else
+            mp.osd_message("Thumbnailing unavailabe")
+        end
+    end)
+end
+
+function Thumbnailer:_create_thumbnail_job_order()
+    -- Returns a list of 1-based thumbnail indices in a job order
+    local used_frames = {}
+    local work_frames = {}
+
+    -- Pick frames in increasing frequency.
+    -- This way we can do a quick few passes over the video and then fill in the gaps.
+    for x = 6, 0, -1 do
+        local nth = (2^x)
+
+        for thi = 1, self.state.thumbnail_count, nth do
+            if not used_frames[thi] then
+                table.insert(work_frames, thi)
+                used_frames[thi] = true
+            end
+        end
+    end
+    return work_frames
+end
+
+function Thumbnailer:prepare_source_path()
+    local file_path = mp.get_property_native("path")
+
+    if self.state.is_remote and thumbnailer_options.remote_direct_stream then
+        -- Use the direct stream (possibly) provided by ytdl
+        -- This skips ytdl on the sub-calls, making the thumbnailing faster
+        -- Works well on YouTube, rest not really tested
+        file_path = mp.get_property_native("stream-path")
+
+        -- edl:// urls can get LONG. In which case, save the path (URL)
+        -- to a temporary file and use that instead.
+        local playlist_filename = join_paths(self.state.thumbnail_directory, "playlist.txt")
+
+        if #file_path > 8000 then
+            -- Path is too long for a playlist - just pass the original URL to
+            -- workers and allow ytdl
+            self.state.worker_extra.enable_ytdl = true
+            file_path = mp.get_property_native("path")
+            msg.warn("Falling back to original URL and ytdl due to LONG source path. This will be slow.")
+
+        elseif #file_path > 1024 then
+            local playlist_file = io.open(playlist_filename, "wb")
+            if not playlist_file then
+                msg.error(("Tried to write a playlist to %s but couldn't!"):format(playlist_file))
+                return false
+            end
+
+            playlist_file:write(file_path .. "\n")
+            playlist_file:close()
+
+            file_path = "--playlist=" .. playlist_filename
+            msg.warn("Using playlist workaround due to long source path")
+        end
+    end
+
+    self.state.worker_input_path = file_path
+    return true
+end
+
+function Thumbnailer:start_worker_jobs()
+    -- Create directory for the thumbnails, if needed
+    local l, err = utils.readdir(self.state.thumbnail_directory)
+    if err then
+        msg.debug("Creating thumbnail directory", self.state.thumbnail_directory)
+        create_directories(self.state.thumbnail_directory)
+    end
+
+    -- Try to prepare the source path for workers, and bail if unable to do so
+    if not self:prepare_source_path() then
+        return
+    end
+
+    local worker_list = {}
+    for worker_name in pairs(self.workers) do table.insert(worker_list, worker_name) end
+
+    local worker_count = #worker_list
+
+    -- In case we have a worker timer created already, clear it
+    -- (For example, if the video-dec-params change in quick succession or the user pressed T, etc)
+    if self.worker_wait_timer then
+        self.worker_wait_timer:stop()
+    end
+
+    if worker_count == 0 then
+        local now = mp.get_time()
+        if mp.get_time() > self.worker_register_timeout then
+            -- Workers have had their time to register but we have none!
+            local err = "No thumbnail workers found. Make sure you are not missing a script!"
+            msg.error(err)
+            mp.osd_message(err, 3)
+
+        else
+            -- We may be too early. Delay the work start a bit to try again.
+            msg.warn("No workers found. Waiting a bit more for them.")
+            -- Wait at least half a second
+            local wait_time = math.max(self.worker_register_timeout - now, 0.5)
+            self.worker_wait_timer = mp.add_timeout(wait_time, function() self:start_worker_jobs() end)
+        end
+
+    else
+        -- We have at least one worker. This may not be all of them, but they have had
+        -- their time to register; we've done our best waiting for them.
+        self.state.enabled = true
+
+        msg.debug( ("Splitting %d thumbnails amongst %d worker(s)"):format(self.state.thumbnail_count, worker_count) )
+
+        local frame_job_order = self:_create_thumbnail_job_order()
+        local worker_jobs = {}
+        for i = 1, worker_count do worker_jobs[worker_list[i]] = {} end
+
+        -- Split frames amongst the workers
+        for i, thumbnail_index in ipairs(frame_job_order) do
+            local worker_id = worker_list[ ((i-1) % worker_count) + 1 ]
+            table.insert(worker_jobs[worker_id], thumbnail_index)
+        end
+
+        local state_json_string = utils.format_json(self.state)
+        msg.debug("Giving workers state:", state_json_string)
+
+        for worker_name, worker_frames in pairs(worker_jobs) do
+            if #worker_frames > 0 then
+                local frames_json_string = utils.format_json(worker_frames)
+                msg.debug("Assigning job to", worker_name, frames_json_string)
+                mp.commandv("script-message-to", worker_name, "mpv_thumbnail_script-job", state_json_string, frames_json_string)
+            end
+        end
+    end
+end
+
+mp.register_event("start-file", function() Thumbnailer:on_start_file() end)
+mp.observe_property("video-dec-params", "native", function(name, params) Thumbnailer:on_video_change(params) end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- Funcs
