@@ -4,7 +4,7 @@ This theme replaces [the built in `osc.lua`](https://github.com/mpv-player/mpv/b
 
 ![](https://i.imgur.com/cYqWlw5.png)
 
-Local files can show thumbnail previews (without [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
+Local files can show thumbnail previews (using a patched version of [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
 
 ![](https://i.imgur.com/FegXl3W.png)
 
@@ -22,6 +22,7 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
   2. Create the `C:\Users\USER\AppData\Roaming\mpv\scripts\` folder if it doesn't exist.
   3. View the following scripts and Save Page As (`Ctrl+S`). Save the files in the `...\scripts\` directory.
       * https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/osc_tethys.lua
+      * https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/mpv_thumbnail_script_server.lua
       * https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.lua
   4. You should now have `C:\Users\USER\AppData\Roaming\mpv\scripts\osc_tethys.lua`
 * Linux: `~/.config/mpv/scripts/`
@@ -30,6 +31,7 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
   mkdir -p ~/.config/mpv/scripts/
   cd ~/.config/mpv/scripts/
   wget https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/osc_tethys.lua
+  wget https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/mpv_thumbnail_script_server.lua
   wget https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.lua
   ```
 
