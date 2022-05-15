@@ -119,7 +119,7 @@ chapterTickColor=CCCCCC
 
 #### osc.conf
 
-A complete list of configuration keys for inherited `osc.lua` can [be found in the source code](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) or [it's documentation](https://mpv.io/manual/master/#configurable-options).
+A complete list of configuration keys inherited from `osc.lua` can [be found in the source code](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) or [it's documentation](https://mpv.io/manual/master/#configurable-options).
 
 Note that tethys ignores a few options in `osc.conf` that are already covered by `tethys.conf`.
 
@@ -146,7 +146,7 @@ visibility=auto
 
 A complete list of configuration keys for mpv_thumbnail_script can [be found in the source code](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [it's documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
 
-Note that `tethys.conf`'s `thumbnailSize` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
+Note that `thumbnailSize` in `tethys.conf` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
 
 * Windows: `%APPDATA%\mpv\script-opts\mpv_thumbnail_script.conf`
 * Linux: `~/.config/mpv/script-opts/mpv_thumbnail_script.conf`
@@ -220,7 +220,7 @@ ignore_hidden=yes
 
 * https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua
 * https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua
-* https://github.com/Zren/mpvz/issues/13 (Theme Development Notes)
+* https://github.com/Zren/mpvz/issues/13 (`osc_tethys.lua` Development Notes)
 * https://github.com/mpv-player/mpv/blob/master/player/lua/assdraw.lua
 * https://github.com/mpv-player/mpv/blob/master/sub/osd.c
 * https://github.com/libass/libass/wiki/ASSv5-Override-Tags
