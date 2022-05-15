@@ -76,7 +76,7 @@ skipBy=5 # skipback/skipfrwd amount in seconds
 skipByMore=30 # RightClick skipback/skipfrwd amount in seconds
 skipMode=exact # "exact" (mordenx default) or "relative+keyframes" (mpv default)
 pipGeometry=33%+-10+-10 # PictureInPicture 33% screen width, 10px from bottom right
-pipAllWorkspaces = true # PictureInPicture will show video on all virtual desktops
+pipAllWorkspaces=yes # PictureInPicture will show video on all virtual desktops
 
 # Sizes
 thumbnailSize=256 # 16:9 = 256x144
@@ -162,7 +162,7 @@ hash_filename_length=128
 # Use mpv to generate thumbnail even if ffmpeg is found in PATH
 # ffmpeg does not handle ordered chapters (MKVs which rely on other MKVs)!
 # mpv is a bit slower, but has better support overall (eg. subtitles in the previews)
-prefer_mpv=true
+prefer_mpv=yes
 
 # Disable the built-in keybind ("T") to add your own
 disable_keybinds=no
@@ -196,7 +196,7 @@ remote_max_delta=120
 
 # Try to grab the raw stream and disable ytdl for the mpv subcalls
 # Much faster than passing the url to ytdl again, but may cause problems with some sites
-remote_direct_stream=true
+remote_direct_stream=yes
 ```
 
 #### autoload.lua
