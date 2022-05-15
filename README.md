@@ -4,7 +4,7 @@ This theme replaces [the built in `osc.lua`](https://github.com/mpv-player/mpv/b
 
 ![](https://i.imgur.com/cYqWlw5.png)
 
-Local files can show thumbnail previews (without [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
+Local files can show thumbnail previews (using a patched version of [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
 
 ![](https://i.imgur.com/FegXl3W.png)
 
@@ -22,6 +22,7 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
   2. Create the `C:\Users\USER\AppData\Roaming\mpv\scripts\` folder if it doesn't exist.
   3. View the following scripts and Save Page As (`Ctrl+S`). Save the files in the `...\scripts\` directory.
       * https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/osc_tethys.lua
+      * https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/mpv_thumbnail_script_server.lua
       * https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.lua
   4. You should now have `C:\Users\USER\AppData\Roaming\mpv\scripts\osc_tethys.lua`
 * Linux: `~/.config/mpv/scripts/`
@@ -30,6 +31,7 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
   mkdir -p ~/.config/mpv/scripts/
   cd ~/.config/mpv/scripts/
   wget https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/osc_tethys.lua
+  wget https://raw.githubusercontent.com/Zren/mpv-osc-tethys/master/mpv_thumbnail_script_server.lua
   wget https://raw.githubusercontent.com/mpv-player/mpv/master/TOOLS/lua/autoload.lua
   ```
 
@@ -57,6 +59,157 @@ RIGHT seek  5 exact            # forward
 LEFT  seek -5 exact            # backward
 WHEEL_UP      seek  5 exact    # forward
 WHEEL_DOWN    seek -5 exact    # backward
+```
+
+### Configure
+
+#### tethys.conf
+
+A complete list of configuration keys can be found at the top of [`osc_tethys.lua`](osc_tethys.lua).
+
+* Windows: `%APPDATA%\mpv\script-opts\tethys.conf`
+* Linux: `~/.config/mpv/script-opts/tethys.conf`
+
+```ini
+# Config
+skipBy=5 # skipback/skipfrwd amount in seconds
+skipByMore=30 # RightClick skipback/skipfrwd amount in seconds
+skipMode=exact # "exact" (mordenx default) or "relative+keyframes" (mpv default)
+pipGeometry=33%+-10+-10 # PictureInPicture 33% screen width, 10px from bottom right
+pipAllWorkspaces=yes # PictureInPicture will show video on all virtual desktops
+
+# Sizes
+thumbnailSize=256 # 16:9 = 256x144
+seekbarHeight=20
+controlsHeight=64
+buttonTooltipSize=20
+windowBarHeight=44
+windowButtonSize=44
+windowTitleSize=24
+cacheTextSize=20
+timecodeSize=27
+seekbarTimestampSize=30
+seekbarTimestampOutline=1
+chapterTickSize=6
+windowTitleOutline=1
+
+# Colors (uses GGBBRR for some reason)
+# Alpha ranges 0 (opaque) .. 255 (transparent)
+textColor=FFFFFF
+buttonColor=CCCCCC
+buttonHoveredColor=FFFFFF
+buttonHoveredRectColor=000000
+buttonHoveredRectAlpha=255 # Easily debug button geometry by setting to 80
+tooltipColor=CCCCCC
+windowBarColor=000000
+windowBarAlpha=255 # (80 is mpv default) (255 morden default)
+windowButtonColor=CCCCCC
+closeButtonHoveredColor=1111DD # #DD1111
+seekbarHandleColor=FFFFFF
+seekbarFgColor=483DD7 # #d73d48
+seekbarBgColor=929292
+seekbarCacheColor=000000
+seekbarCacheAlpha=128
+chapterTickColor=CCCCCC
+```
+
+#### osc.conf
+
+A complete list of configuration keys for inherited `osc.lua` can [be found in the source code](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) or [it's documentation](https://mpv.io/manual/master/#configurable-options).
+
+Note that tethys ignores a few options in `osc.conf` that are already covered by `tethys.conf`.
+
+* Windows: `%APPDATA%\mpv\script-opts\osc.conf`
+* Linux: `~/.config/mpv/script-opts/osc.conf`
+
+```ini
+# Whether to display the chapters/playlist at the OSD when left-clicking the next/previous OSC buttons, respectively.
+playlist_osd=yes
+chapters_osd=yes
+
+# Duration of fade out in ms, 0 = no fade
+fadeduration=200
+
+# Minimum amount of pixels the mouse has to move between ticks to make the OSC show up. Default pre-0.21.0 was 3.
+minmousemove=0
+
+# auto=hide/show on mouse move
+# Also supports never and always
+visibility=auto
+```
+
+#### mpv_thumbnail_script.conf
+
+A complete list of configuration keys for mpv_thumbnail_script can [be found in the source code](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [it's documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
+
+Note that `tethys.conf`'s `thumbnailSize` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces to `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
+
+* Windows: `%APPDATA%\mpv\script-opts\mpv_thumbnail_script.conf`
+* Linux: `~/.config/mpv/script-opts/mpv_thumbnail_script.conf`
+
+```ini
+# Automatically generate the thumbnails on video load, without a keypress
+autogenerate=yes
+
+# 1 hour, Only automatically thumbnail videos shorter than this (seconds)
+autogenerate_max_duration=3600
+
+# SHA1-sum filenames over this length
+# It's nice to know what files the thumbnails are (hence directory names)
+# but long URLs may approach filesystem limits.
+hash_filename_length=128
+
+# Use mpv to generate thumbnail even if ffmpeg is found in PATH
+# ffmpeg does not handle ordered chapters (MKVs which rely on other MKVs)!
+# mpv is a bit slower, but has better support overall (eg. subtitles in the previews)
+prefer_mpv=yes
+
+# Disable the built-in keybind ("T") to add your own
+disable_keybinds=no
+
+# The thumbnail count target
+# (This will result in a thumbnail every ~10 seconds for a 25 minute video)
+thumbnail_count=150
+
+# The above target count will be adjusted by the minimum and
+# maximum time difference between thumbnails.
+# The thumbnail_count will be used to calculate a target separation,
+# and min/max_delta will be used to constrict it.
+
+# In other words, thumbnails will be:
+#   at least min_delta seconds apart (limiting the amount)
+#   at most max_delta seconds apart (raising the amount if needed)
+min_delta=5
+# 120 seconds aka 2 minutes will add more thumbnails when the video is over 5 hours!
+max_delta=90
+
+
+# Overrides for remote urls (you generally want less thumbnails!)
+# Thumbnailing network paths will be done with mpv
+
+# Allow thumbnailing network paths (naive check for "://")
+thumbnail_network=no
+# Override thumbnail count, min/max delta
+remote_thumbnail_count=60
+remote_min_delta=15
+remote_max_delta=120
+
+# Try to grab the raw stream and disable ytdl for the mpv subcalls
+# Much faster than passing the url to ytdl again, but may cause problems with some sites
+remote_direct_stream=yes
+```
+
+#### autoload.lua
+
+* Windows: `%APPDATA%\mpv\script-opts\autoload.conf`
+* Linux: `~/.config/mpv/script-opts/autoload.conf`
+
+```ini
+disabled=no
+images=yes
+videos=yes
+audio=yes
+ignore_hidden=yes
 ```
 
 ### Notes

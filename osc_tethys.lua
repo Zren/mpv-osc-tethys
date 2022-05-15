@@ -3,6 +3,140 @@ local msg = require 'mp.msg'
 local opt = require 'mp.options'
 local utils = require 'mp.utils'
 
+-- Windows: C:\Users\USER\AppData\Roaming\mpv\script-opts\tethys.conf
+-- Linux: ~/config/mpv/script-opts/tethys.conf
+local tethys = {
+    -- Config
+    skipBy = 5, -- skipback/skipfrwd amount in seconds
+    skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
+    skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
+    pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
+    pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
+
+    -- Sizes
+    thumbnailSize = 256, -- 16:9 = 256x144
+    seekbarHeight = 20,
+    controlsHeight = 64,
+    buttonTooltipSize = 20,
+    windowBarHeight = 44,
+    windowButtonSize = 44,
+    windowTitleSize = 24,
+    cacheTextSize = 20,
+    timecodeSize = 27,
+    seekbarTimestampSize = 30,
+    seekbarTimestampOutline = 1,
+    chapterTickSize = 6,
+    windowTitleOutline = 1,
+
+    -- Misc
+    osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
+
+    -- Colors (uses GGBBRR for some reason)
+    -- Alpha ranges 0 (opaque) .. 255 (transparent)
+    textColor = "FFFFFF",
+    buttonColor = "CCCCCC",
+    buttonHoveredColor = "FFFFFF",
+    buttonHoveredRectColor = "000000",
+    buttonHoveredRectAlpha = 255, -- Easily debug button geometry by setting to 80
+    tooltipColor = "CCCCCC",
+    windowBarColor = "000000",
+    windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
+    windowButtonColor = "CCCCCC",
+    closeButtonHoveredColor = "1111DD", -- #DD1111
+    seekbarHandleColor = "FFFFFF",
+    seekbarFgColor = "483DD7", -- #d73d48
+    seekbarBgColor = "929292",
+    seekbarCacheColor = "000000",
+    seekbarCacheAlpha = 128,
+    chapterTickColor = "CCCCCC",
+}
+read_options(tethys, "tethys")
+
+
+tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
+tethys.buttonW = tethys.controlsHeight
+tethys.buttonH = tethys.controlsHeight
+tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
+tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
+tethys.windowControlsRect = {
+    w = tethys.windowButtonSize * 3,
+    h = tethys.windowBarHeight,
+}
+
+tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
+tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
+
+tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
+
+tethys.isPictureInPicture = false
+tethys.pipWasFullscreen = false
+tethys.pipWasMaximized = false
+tethys.pipWasOnTop = false
+tethys.pipHadBorders = false
+
+
+-- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
+function genColorStyle(color)
+    return "{\\c&H"..color.."&}" -- Not sure why &H...& is used in santa_hat_lines
+    -- return "{\\c("..color..")}" -- Works
+    -- return "{\\c(#"..color..")}" -- Only works for paths, and breaks other stuff.
+end
+
+---- mpv's stats.lua has some ASS formatting
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L62
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L176
+-- "{\\r}{\\an7}{\\fs%d}{\\fn%s}{\\bord%f}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H%s&}{\\xshad%f}{\\yshad%f}{\\4c&H%s&}"
+-- {\\bord%f} = border size
+-- {\\3c&H%s&} = border color
+-- {\\1c&H%s&} = font color
+-- {\\alpha&H%s&} = alpha
+-- {\\xshad%f}{\\yshad%f} = shadow x,y offset
+-- {\\4c&H%s&} = shadow color
+---- \\q2 in windowTitle is unknown
+---- Not sure why \1c is rect fill color. Here's docs for \3c:
+-- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
+-- "{\\1c&H"..color.."}"
+local tethysStyle = {
+    button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
+    buttonHovered = genColorStyle(tethys.buttonHoveredColor),
+    buttonHoveredRect = ("{\\rDefault\\blur0\\bord0\\1c&H%s\\1a&H%X&}"):format(tethys.buttonHoveredRectColor, tethys.buttonHoveredRectAlpha),
+    smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
+    trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
+    windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
+    windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
+    windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
+    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.tooltipColor, tethys.buttonTooltipSize),
+    timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
+    cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
+    seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
+    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.seekbarTimestampOutline, tethys.textColor, tethys.seekbarTimestampSize),
+    text = genColorStyle(tethys.textColor),
+    seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
+    seekbarFg = genColorStyle(tethys.seekbarFgColor),
+    seekbarBg = genColorStyle(tethys.seekbarBgColor),
+    seekbarCache = genColorStyle(tethys.seekbarCacheColor),
+    chapterTick = genColorStyle(tethys.chapterTickColor),
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 --
 -- Parameters
 --
@@ -94,117 +228,20 @@ local osc_styles = {
 }
 
 
-local tethys = {
-    -- Config
-    skipBy = 5, -- skipback/skipfrwd amount in seconds
-    skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
-    skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
-    pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
-    pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
-    showThumbnails = true, -- Show previews when hovering seekbar
-    showPlaylistThumbnails = false, -- Show previews when hovering playlist prev/next
-
-    -- Sizes
-    thumbnailSize = 256, -- 16:9 = 256x144
-    seekbarHeight = 20,
-    controlsHeight = 64,
-    buttonTooltipSize = 20,
-    windowBarHeight = 44,
-    windowButtonSize = 44,
-    windowTitleSize = 24,
-    cacheTextSize = 20,
-    timecodeSize = 27,
-    seekbarTimestampSize = 30,
-    chapterTickSize = 6,
-    windowTitleOutline = 1,
-
-    -- Misc
-    osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
-
-    -- Colors (uses GGBBRR for some reason)
-    -- Alpha ranges 0 (opache) .. 255 (transparent)
-    textColor = "FFFFFF",
-    buttonColor = "CCCCCC",
-    buttonHoveredColor = "FFFFFF",
-    buttonHoveredRectColor = "000000",
-    buttonHoveredRectAlpha = 255, -- Easily debug button geometry by setting to 80
-    tooltipColor = "CCCCCC",
-    windowBarColor = "000000",
-    windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
-    windowButtonColor = "CCCCCC",
-    closeButtonHoveredColor = "1111DD", -- #DD1111
-    seekbarHandleColor = "FFFFFF",
-    seekbarFgColor = "483DD7", -- #d73d48
-    seekbarBgColor = "929292",
-    seekbarCacheColor = "000000",
-    seekbarCacheAlpha = 128,
-    chapterTickColor = "CCCCCC",
-}
-tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
-tethys.buttonW = tethys.controlsHeight
-tethys.buttonH = tethys.controlsHeight
-tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
-tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
-tethys.windowControlsRect = {
-    w = tethys.windowButtonSize * 3,
-    h = tethys.windowBarHeight,
-}
-
-tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
-tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
-
-tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
-
-tethys.isPictureInPicture = false
-tethys.pipWasFullscreen = false
-tethys.pipWasMaximized = false
-tethys.pipWasOnTop = false
-tethys.pipHadBorders = false
 
 
--- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
-function genColorStyle(color)
-    return "{\\c&H"..color.."&}" -- Not sure why &H...& is used in santa_hat_lines
-    -- return "{\\c("..color..")}" -- Works
-    -- return "{\\c(#"..color..")}" -- Only works for paths, and breaks other stuff.
-end
 
----- mpv's stats.lua has some ASS formatting
--- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L62
--- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L176
--- "{\\r}{\\an7}{\\fs%d}{\\fn%s}{\\bord%f}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H%s&}{\\xshad%f}{\\yshad%f}{\\4c&H%s&}"
--- {\\bord%f} = border size
--- {\\3c&H%s&} = border color
--- {\\1c&H%s&} = font color
--- {\\alpha&H%s&} = alpha
--- {\\xshad%f}{\\yshad%f} = shadow x,y offset
--- {\\4c&H%s&} = shadow color
----- \\q2 in windowTitle is unknown
----- Not sure why \1c is rect fill color. Here's docs for \3c:
--- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
--- "{\\1c&H"..color.."}"
-local tethysStyle = {
-    button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
-    buttonHovered = genColorStyle(tethys.buttonHoveredColor),
-    buttonHoveredRect = ("{\\rDefault\\blur0\\bord0\\1c&H%s\\1a&H%X&}"):format(tethys.buttonHoveredRectColor, tethys.buttonHoveredRectAlpha),
-    smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
-    trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
-    windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
-    windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
-    closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
-    windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
-    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.tooltipColor, tethys.buttonTooltipSize),
-    timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
-    cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
-    seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
-    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.textColor, tethys.seekbarTimestampSize),
-    text = genColorStyle(tethys.textColor),
-    seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
-    seekbarFg = genColorStyle(tethys.seekbarFgColor),
-    seekbarBg = genColorStyle(tethys.seekbarBgColor),
-    seekbarCache = genColorStyle(tethys.seekbarCacheColor),
-    chapterTick = genColorStyle(tethys.chapterTickColor),
-}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -286,9 +323,32 @@ function getDeltaPlaylistItem(delta)
     return deltaItem
 end
 
------ Thumbnail
--- Based on: https://github.com/TheAMM/mpv_thumbnail_script
--- helpers.lua
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---- Thumbnailer (https://github.com/TheAMM/mpv_thumbnail_script)
+-- mpv_thumbnail_script/lib/helpers.lua
+-- (partial file) Only copied the needed functions
+function clear_table(target)
+  for key, value in pairs(target) do
+    target[key] = nil
+  end
+end
 ON_WINDOWS = (package.config:sub(1,1) ~= '/')
 function is_absolute_path( path )
   local tmp, is_win  = path:gsub("^[A-Z]:\\", "")
@@ -354,7 +414,904 @@ function ExecutableFinder:get_executable_path(name, raw_name)
   return self.path_cache[name]
 end
 
--- osc_tethys.lua checks
+
+
+-- mpv_thumbnail_script/lib/sha1.lua
+-- $Revision: 1.5 $
+-- $Date: 2014-09-10 16:54:25 $
+
+-- This module was originally taken from http://cube3d.de/uploads/Main/sha1.txt.
+
+-------------------------------------------------------------------------------
+-- SHA-1 secure hash computation, and HMAC-SHA1 signature computation,
+-- in pure Lua (tested on Lua 5.1)
+-- License: MIT
+--
+-- Usage:
+-- local hashAsHex = sha1.hex(message) -- returns a hex string
+-- local hashAsData = sha1.bin(message) -- returns raw bytes
+--
+-- local hmacAsHex = sha1.hmacHex(key, message) -- hex string
+-- local hmacAsData = sha1.hmacBin(key, message) -- raw bytes
+--
+--
+-- Pass sha1.hex() a string, and it returns a hash as a 40-character hex string.
+-- For example, the call
+--
+-- local hash = sha1.hex("iNTERFACEWARE")
+--
+-- puts the 40-character string
+--
+-- "e76705ffb88a291a0d2f9710a5471936791b4819"
+--
+-- into the variable 'hash'
+--
+-- Pass sha1.hmacHex() a key and a message, and it returns the signature as a
+-- 40-byte hex string.
+--
+--
+-- The two "bin" versions do the same, but return the 20-byte string of raw
+-- data that the 40-byte hex strings represent.
+--
+-------------------------------------------------------------------------------
+--
+-- Description
+-- Due to the lack of bitwise operations in 5.1, this version uses numbers to
+-- represents the 32bit words that we combine with binary operations. The basic
+-- operations of byte based "xor", "or", "and" are all cached in a combination
+-- table (several 64k large tables are built on startup, which
+-- consumes some memory and time). The caching can be switched off through
+-- setting the local cfg_caching variable to false.
+-- For all binary operations, the 32 bit numbers are split into 8 bit values
+-- that are combined and then merged again.
+--
+-- Algorithm: http://www.itl.nist.gov/fipspubs/fip180-1.htm
+--
+-------------------------------------------------------------------------------
+
+local sha1 = (function()
+local sha1 = {}
+
+-- set this to false if you don't want to build several 64k sized tables when
+-- loading this file (takes a while but grants a boost of factor 13)
+local cfg_caching = false
+-- local storing of global functions (minor speedup)
+local floor,modf = math.floor,math.modf
+local char,format,rep = string.char,string.format,string.rep
+
+-- merge 4 bytes to an 32 bit word
+local function bytes_to_w32 (a,b,c,d) return a*0x1000000+b*0x10000+c*0x100+d end
+-- split a 32 bit word into four 8 bit numbers
+local function w32_to_bytes (i)
+   return floor(i/0x1000000)%0x100,floor(i/0x10000)%0x100,floor(i/0x100)%0x100,i%0x100
+end
+
+-- shift the bits of a 32 bit word. Don't use negative values for "bits"
+local function w32_rot (bits,a)
+   local b2 = 2^(32-bits)
+   local a,b = modf(a/b2)
+   return a+b*b2*(2^(bits))
+end
+
+-- caching function for functions that accept 2 arguments, both of values between
+-- 0 and 255. The function to be cached is passed, all values are calculated
+-- during loading and a function is returned that returns the cached values (only)
+local function cache2arg (fn)
+   if not cfg_caching then return fn end
+   local lut = {}
+   for i=0,0xffff do
+      local a,b = floor(i/0x100),i%0x100
+      lut[i] = fn(a,b)
+   end
+   return function (a,b)
+      return lut[a*0x100+b]
+   end
+end
+
+-- splits an 8-bit number into 8 bits, returning all 8 bits as booleans
+local function byte_to_bits (b)
+   local b = function (n)
+      local b = floor(b/n)
+      return b%2==1
+   end
+   return b(1),b(2),b(4),b(8),b(16),b(32),b(64),b(128)
+end
+
+-- builds an 8bit number from 8 booleans
+local function bits_to_byte (a,b,c,d,e,f,g,h)
+   local function n(b,x) return b and x or 0 end
+   return n(a,1)+n(b,2)+n(c,4)+n(d,8)+n(e,16)+n(f,32)+n(g,64)+n(h,128)
+end
+
+-- debug function for visualizing bits in a string
+local function bits_to_string (a,b,c,d,e,f,g,h)
+   local function x(b) return b and "1" or "0" end
+   return ("%s%s%s%s %s%s%s%s"):format(x(a),x(b),x(c),x(d),x(e),x(f),x(g),x(h))
+end
+
+-- debug function for converting a 8-bit number as bit string
+local function byte_to_bit_string (b)
+   return bits_to_string(byte_to_bits(b))
+end
+
+-- debug function for converting a 32 bit number as bit string
+local function w32_to_bit_string(a)
+   if type(a) == "string" then return a end
+   local aa,ab,ac,ad = w32_to_bytes(a)
+   local s = byte_to_bit_string
+   return ("%s %s %s %s"):format(s(aa):reverse(),s(ab):reverse(),s(ac):reverse(),s(ad):reverse()):reverse()
+end
+
+-- bitwise "and" function for 2 8bit number
+local band = cache2arg (function(a,b)
+      local A,B,C,D,E,F,G,H = byte_to_bits(b)
+      local a,b,c,d,e,f,g,h = byte_to_bits(a)
+      return bits_to_byte(
+         A and a, B and b, C and c, D and d,
+         E and e, F and f, G and g, H and h)
+   end)
+
+-- bitwise "or" function for 2 8bit numbers
+local bor = cache2arg(function(a,b)
+      local A,B,C,D,E,F,G,H = byte_to_bits(b)
+      local a,b,c,d,e,f,g,h = byte_to_bits(a)
+      return bits_to_byte(
+         A or a, B or b, C or c, D or d,
+         E or e, F or f, G or g, H or h)
+   end)
+
+-- bitwise "xor" function for 2 8bit numbers
+local bxor = cache2arg(function(a,b)
+      local A,B,C,D,E,F,G,H = byte_to_bits(b)
+      local a,b,c,d,e,f,g,h = byte_to_bits(a)
+      return bits_to_byte(
+         A ~= a, B ~= b, C ~= c, D ~= d,
+         E ~= e, F ~= f, G ~= g, H ~= h)
+   end)
+
+-- bitwise complement for one 8bit number
+local function bnot (x)
+   return 255-(x % 256)
+end
+
+-- creates a function to combine to 32bit numbers using an 8bit combination function
+local function w32_comb(fn)
+   return function (a,b)
+      local aa,ab,ac,ad = w32_to_bytes(a)
+      local ba,bb,bc,bd = w32_to_bytes(b)
+      return bytes_to_w32(fn(aa,ba),fn(ab,bb),fn(ac,bc),fn(ad,bd))
+   end
+end
+
+-- create functions for and, xor and or, all for 2 32bit numbers
+local w32_and = w32_comb(band)
+local w32_xor = w32_comb(bxor)
+local w32_or = w32_comb(bor)
+
+-- xor function that may receive a variable number of arguments
+local function w32_xor_n (a,...)
+   local aa,ab,ac,ad = w32_to_bytes(a)
+   for i=1,select('#',...) do
+      local ba,bb,bc,bd = w32_to_bytes(select(i,...))
+      aa,ab,ac,ad = bxor(aa,ba),bxor(ab,bb),bxor(ac,bc),bxor(ad,bd)
+   end
+   return bytes_to_w32(aa,ab,ac,ad)
+end
+
+-- combining 3 32bit numbers through binary "or" operation
+local function w32_or3 (a,b,c)
+   local aa,ab,ac,ad = w32_to_bytes(a)
+   local ba,bb,bc,bd = w32_to_bytes(b)
+   local ca,cb,cc,cd = w32_to_bytes(c)
+   return bytes_to_w32(
+      bor(aa,bor(ba,ca)), bor(ab,bor(bb,cb)), bor(ac,bor(bc,cc)), bor(ad,bor(bd,cd))
+   )
+end
+
+-- binary complement for 32bit numbers
+local function w32_not (a)
+   return 4294967295-(a % 4294967296)
+end
+
+-- adding 2 32bit numbers, cutting off the remainder on 33th bit
+local function w32_add (a,b) return (a+b) % 4294967296 end
+
+-- adding n 32bit numbers, cutting off the remainder (again)
+local function w32_add_n (a,...)
+   for i=1,select('#',...) do
+      a = (a+select(i,...)) % 4294967296
+   end
+   return a
+end
+-- converting the number to a hexadecimal string
+local function w32_to_hexstring (w) return format("%08x",w) end
+
+-- calculating the SHA1 for some text
+function sha1.hex(msg)
+   local H0,H1,H2,H3,H4 = 0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0
+   local msg_len_in_bits = #msg * 8
+
+   local first_append = char(0x80) -- append a '1' bit plus seven '0' bits
+
+   local non_zero_message_bytes = #msg +1 +8 -- the +1 is the appended bit 1, the +8 are for the final appended length
+   local current_mod = non_zero_message_bytes % 64
+   local second_append = current_mod>0 and rep(char(0), 64 - current_mod) or ""
+
+   -- now to append the length as a 64-bit number.
+   local B1, R1 = modf(msg_len_in_bits / 0x01000000)
+   local B2, R2 = modf( 0x01000000 * R1 / 0x00010000)
+   local B3, R3 = modf( 0x00010000 * R2 / 0x00000100)
+   local B4 = 0x00000100 * R3
+
+   local L64 = char( 0) .. char( 0) .. char( 0) .. char( 0) -- high 32 bits
+   .. char(B1) .. char(B2) .. char(B3) .. char(B4) -- low 32 bits
+
+   msg = msg .. first_append .. second_append .. L64
+
+   assert(#msg % 64 == 0)
+
+   local chunks = #msg / 64
+
+   local W = { }
+   local start, A, B, C, D, E, f, K, TEMP
+   local chunk = 0
+
+   while chunk < chunks do
+      --
+      -- break chunk up into W[0] through W[15]
+      --
+      start,chunk = chunk * 64 + 1,chunk + 1
+
+      for t = 0, 15 do
+         W[t] = bytes_to_w32(msg:byte(start, start + 3))
+         start = start + 4
+      end
+
+      --
+      -- build W[16] through W[79]
+      --
+      for t = 16, 79 do
+         -- For t = 16 to 79 let Wt = S1(Wt-3 XOR Wt-8 XOR Wt-14 XOR Wt-16).
+         W[t] = w32_rot(1, w32_xor_n(W[t-3], W[t-8], W[t-14], W[t-16]))
+      end
+
+      A,B,C,D,E = H0,H1,H2,H3,H4
+
+      for t = 0, 79 do
+         if t <= 19 then
+            -- (B AND C) OR ((NOT B) AND D)
+            f = w32_or(w32_and(B, C), w32_and(w32_not(B), D))
+            K = 0x5A827999
+         elseif t <= 39 then
+            -- B XOR C XOR D
+            f = w32_xor_n(B, C, D)
+            K = 0x6ED9EBA1
+         elseif t <= 59 then
+            -- (B AND C) OR (B AND D) OR (C AND D
+            f = w32_or3(w32_and(B, C), w32_and(B, D), w32_and(C, D))
+            K = 0x8F1BBCDC
+         else
+            -- B XOR C XOR D
+            f = w32_xor_n(B, C, D)
+            K = 0xCA62C1D6
+         end
+
+         -- TEMP = S5(A) + ft(B,C,D) + E + Wt + Kt;
+         A,B,C,D,E = w32_add_n(w32_rot(5, A), f, E, W[t], K),
+         A, w32_rot(30, B), C, D
+      end
+      -- Let H0 = H0 + A, H1 = H1 + B, H2 = H2 + C, H3 = H3 + D, H4 = H4 + E.
+      H0,H1,H2,H3,H4 = w32_add(H0, A),w32_add(H1, B),w32_add(H2, C),w32_add(H3, D),w32_add(H4, E)
+   end
+   local f = w32_to_hexstring
+   return f(H0) .. f(H1) .. f(H2) .. f(H3) .. f(H4)
+end
+
+local function hex_to_binary(hex)
+   return hex:gsub('..', function(hexval)
+         return string.char(tonumber(hexval, 16))
+      end)
+end
+
+function sha1.bin(msg)
+   return hex_to_binary(sha1.hex(msg))
+end
+
+local xor_with_0x5c = {}
+local xor_with_0x36 = {}
+-- building the lookuptables ahead of time (instead of littering the source code
+-- with precalculated values)
+for i=0,0xff do
+   xor_with_0x5c[char(i)] = char(bxor(i,0x5c))
+   xor_with_0x36[char(i)] = char(bxor(i,0x36))
+end
+
+local blocksize = 64 -- 512 bits
+
+function sha1.hmacHex(key, text)
+   assert(type(key) == 'string', "key passed to hmacHex should be a string")
+   assert(type(text) == 'string', "text passed to hmacHex should be a string")
+
+   if #key > blocksize then
+      key = sha1.bin(key)
+   end
+
+   local key_xord_with_0x36 = key:gsub('.', xor_with_0x36) .. string.rep(string.char(0x36), blocksize - #key)
+   local key_xord_with_0x5c = key:gsub('.', xor_with_0x5c) .. string.rep(string.char(0x5c), blocksize - #key)
+
+   return sha1.hex(key_xord_with_0x5c .. sha1.bin(key_xord_with_0x36 .. text))
+end
+
+function sha1.hmacBin(key, text)
+   return hex_to_binary(sha1.hmacHex(key, text))
+end
+
+return sha1
+end)()
+
+
+
+-- mpv_thumbnail_script/src/options.lua
+local SCRIPT_NAME = "mpv_thumbnail_script"
+
+local default_cache_base = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
+
+local thumbnailer_options = {
+    -- The thumbnail directory
+    cache_directory = join_paths(default_cache_base, "mpv_thumbs_cache"),
+
+    ------------------------
+    -- Generation options --
+    ------------------------
+
+    -- Automatically generate the thumbnails on video load, without a keypress
+    autogenerate = true,
+
+    -- Only automatically thumbnail videos shorter than this (seconds)
+    autogenerate_max_duration = 3600, -- 1 hour
+
+    -- SHA1-sum filenames over this length
+    -- It's nice to know what files the thumbnails are (hence directory names)
+    -- but long URLs may approach filesystem limits.
+    hash_filename_length = 128,
+
+    -- Use mpv to generate thumbnail even if ffmpeg is found in PATH
+    -- ffmpeg does not handle ordered chapters (MKVs which rely on other MKVs)!
+    -- mpv is a bit slower, but has better support overall (eg. subtitles in the previews)
+    prefer_mpv = true,
+
+    -- Explicitly disable subtitles on the mpv sub-calls
+    mpv_no_sub = false,
+    -- Add a "--no-config" to the mpv sub-call arguments
+    mpv_no_config = false,
+    -- Add a "--profile=<mpv_profile>" to the mpv sub-call arguments
+    -- Use "" to disable
+    mpv_profile = "",
+    -- Output debug logs to <thumbnail_path>.log, ala <cache_directory>/<video_filename>/000000.bgra.log
+    -- The logs are removed after successful encodes, unless you set mpv_keep_logs below
+    mpv_logs = true,
+    -- Keep all mpv logs, even the succesfull ones
+    mpv_keep_logs = false,
+
+    -- Disable the built-in keybind ("T") to add your own
+    disable_keybinds = false,
+
+    ---------------------
+    -- Display options --
+    ---------------------
+
+    -- Move the thumbnail up or down
+    -- For example:
+    --   topbar/bottombar: 24
+    --   rest: 0
+    vertical_offset = 24,
+
+    -- Adjust background padding
+    -- Examples:
+    --   topbar:       0, 10, 10, 10
+    --   bottombar:   10,  0, 10, 10
+    --   slimbox/box: 10, 10, 10, 10
+    pad_top   = 10,
+    pad_bot   =  0,
+    pad_left  = 10,
+    pad_right = 10,
+
+    -- If true, pad values are screen-pixels. If false, video-pixels.
+    pad_in_screenspace = true,
+    -- Calculate pad into the offset
+    offset_by_pad = true,
+
+    -- Background color in BBGGRR
+    background_color = "000000",
+    -- Alpha: 0 - fully opaque, 255 - transparent
+    background_alpha = 80,
+
+    -- Keep thumbnail on the screen near left or right side
+    constrain_to_screen = true,
+
+    -- Do not display the thumbnailing progress
+    hide_progress = false,
+
+    -----------------------
+    -- Thumbnail options --
+    -----------------------
+
+    -- The maximum dimensions of the thumbnails (pixels)
+    thumbnail_width = 200,
+    thumbnail_height = 200,
+
+    -- The thumbnail count target
+    -- (This will result in a thumbnail every ~10 seconds for a 25 minute video)
+    thumbnail_count = 150,
+
+    -- The above target count will be adjusted by the minimum and
+    -- maximum time difference between thumbnails.
+    -- The thumbnail_count will be used to calculate a target separation,
+    -- and min/max_delta will be used to constrict it.
+
+    -- In other words, thumbnails will be:
+    --   at least min_delta seconds apart (limiting the amount)
+    --   at most max_delta seconds apart (raising the amount if needed)
+    min_delta = 5,
+    -- 120 seconds aka 2 minutes will add more thumbnails when the video is over 5 hours!
+    max_delta = 90,
+
+
+    -- Overrides for remote urls (you generally want less thumbnails!)
+    -- Thumbnailing network paths will be done with mpv
+
+    -- Allow thumbnailing network paths (naive check for "://")
+    thumbnail_network = false,
+    -- Override thumbnail count, min/max delta
+    remote_thumbnail_count = 60,
+    remote_min_delta = 15,
+    remote_max_delta = 120,
+
+    -- Try to grab the raw stream and disable ytdl for the mpv subcalls
+    -- Much faster than passing the url to ytdl again, but may cause problems with some sites
+    remote_direct_stream = true,
+}
+
+read_options(thumbnailer_options, SCRIPT_NAME)
+
+
+
+-- mpv_thumbnail_script/src/thumbnailer_shared.lua
+local Thumbnailer = {
+    cache_directory = thumbnailer_options.cache_directory,
+
+    state = {
+        ready = false,
+        available = false,
+        enabled = false,
+
+        thumbnail_template = nil,
+
+        thumbnail_delta = nil,
+        thumbnail_count = 0,
+
+        thumbnail_size = nil,
+
+        finished_thumbnails = 0,
+
+        -- List of thumbnail states (from 1 to thumbnail_count)
+        -- ready: 1
+        -- in progress: 0
+        -- not ready: -1
+        thumbnails = {},
+
+        worker_input_path = nil,
+        -- Extra options for the workers
+        worker_extra = {},
+    },
+    -- Set in register_client
+    worker_register_timeout = nil,
+    -- A timer used to wait for more workers in case we have none
+    worker_wait_timer = nil,
+    workers = {}
+}
+
+function Thumbnailer:clear_state()
+    clear_table(self.state)
+    self.state.ready = false
+    self.state.available = false
+    self.state.finished_thumbnails = 0
+    self.state.thumbnails = {}
+    self.state.worker_extra = {}
+end
+
+
+function Thumbnailer:on_file_loaded()
+    self:clear_state()
+end
+
+function Thumbnailer:on_thumb_ready(index)
+    self.state.thumbnails[index] = 1
+
+    -- Full recount instead of a naive increment (let's be safe!)
+    self.state.finished_thumbnails = 0
+    for i, v in pairs(self.state.thumbnails) do
+        if v > 0 then
+            self.state.finished_thumbnails = self.state.finished_thumbnails + 1
+        end
+    end
+end
+
+function Thumbnailer:on_thumb_progress(index)
+    self.state.thumbnails[index] = math.max(self.state.thumbnails[index], 0)
+end
+
+function Thumbnailer:on_start_file()
+    -- Clear state when a new file is being loaded
+    self:clear_state()
+end
+
+function Thumbnailer:on_video_change(params)
+    -- Gather a new state when we get proper video-dec-params and our state is empty
+    if params ~= nil then
+        if not self.state.ready then
+            self:update_state()
+        end
+    end
+end
+
+
+function Thumbnailer:update_state()
+    msg.debug("Gathering video/thumbnail state")
+
+    self.state.thumbnail_delta = self:get_delta()
+    self.state.thumbnail_count = self:get_thumbnail_count(self.state.thumbnail_delta)
+
+    -- Prefill individual thumbnail states
+    for i = 1, self.state.thumbnail_count do
+        self.state.thumbnails[i] = -1
+    end
+
+    self.state.thumbnail_template, self.state.thumbnail_directory = self:get_thumbnail_template()
+    self.state.thumbnail_size = self:get_thumbnail_size()
+
+    self.state.ready = true
+
+    local file_path = mp.get_property_native("path")
+    self.state.is_remote = file_path:find("://") ~= nil
+
+    self.state.available = false
+
+    -- Make sure the file has video (and not just albumart)
+    local track_list = mp.get_property_native("track-list")
+    local has_video = false
+    for i, track in pairs(track_list) do
+        if track.type == "video" and not track.external and not track.albumart then
+            has_video = true
+            break
+        end
+    end
+
+    if has_video and self.state.thumbnail_delta ~= nil and self.state.thumbnail_size ~= nil and self.state.thumbnail_count > 0 then
+        self.state.available = true
+    end
+
+    msg.debug("Thumbnailer.state:", utils.to_string(self.state))
+
+end
+
+
+function Thumbnailer:get_thumbnail_template()
+    local file_path = mp.get_property_native("path")
+    local is_remote = file_path:find("://") ~= nil
+
+    local filename = mp.get_property_native("filename/no-ext")
+    local filesize = mp.get_property_native("file-size", 0)
+
+    if is_remote then
+        filesize = 0
+    end
+
+    filename = filename:gsub('[^a-zA-Z0-9_.%-\' ]', '')
+    -- Hash overly long filenames (most likely URLs)
+    if #filename > thumbnailer_options.hash_filename_length then
+        filename = sha1.hex(filename)
+    end
+
+    local file_key = ("%s-%d"):format(filename, filesize)
+
+    local thumbnail_directory = join_paths(self.cache_directory, file_key)
+    local file_template = join_paths(thumbnail_directory, "%06d.bgra")
+    return file_template, thumbnail_directory
+end
+
+
+function Thumbnailer:get_thumbnail_size()
+    local video_dec_params = mp.get_property_native("video-dec-params")
+    local video_width = video_dec_params.dw
+    local video_height = video_dec_params.dh
+    if not (video_width and video_height) then
+        return nil
+    end
+
+    local w, h
+    if video_width > video_height then
+        w = thumbnailer_options.thumbnail_width
+        h = math.floor(video_height * (w / video_width))
+    else
+        h = thumbnailer_options.thumbnail_height
+        w = math.floor(video_width * (h / video_height))
+    end
+    return { w=w, h=h }
+end
+
+
+function Thumbnailer:get_delta()
+    local file_path = mp.get_property_native("path")
+    local file_duration = mp.get_property_native("duration")
+    local is_seekable = mp.get_property_native("seekable")
+
+    -- Naive url check
+    local is_remote = file_path:find("://") ~= nil
+
+    local remote_and_disallowed = is_remote
+    if is_remote and thumbnailer_options.thumbnail_network then
+        remote_and_disallowed = false
+    end
+
+    if remote_and_disallowed or not is_seekable or not file_duration then
+        -- Not a local path (or remote thumbnails allowed), not seekable or lacks duration
+        return nil
+    end
+
+    local thumbnail_count = thumbnailer_options.thumbnail_count
+    local min_delta = thumbnailer_options.min_delta
+    local max_delta = thumbnailer_options.max_delta
+
+    if is_remote then
+        thumbnail_count = thumbnailer_options.remote_thumbnail_count
+        min_delta = thumbnailer_options.remote_min_delta
+        max_delta = thumbnailer_options.remote_max_delta
+    end
+
+    local target_delta = (file_duration / thumbnail_count)
+    local delta = math.max(min_delta, math.min(max_delta, target_delta))
+
+    return delta
+end
+
+
+function Thumbnailer:get_thumbnail_count(delta)
+    if delta == nil then
+        return 0
+    end
+    local file_duration = mp.get_property_native("duration")
+
+    return math.ceil(file_duration / delta)
+end
+
+function Thumbnailer:get_closest(thumbnail_index)
+    -- Given a 1-based index, find the closest available thumbnail and return it's 1-based index
+
+    -- Check the direct thumbnail index first
+    if self.state.thumbnails[thumbnail_index] > 0 then
+        return thumbnail_index
+    end
+
+    local min_distance = self.state.thumbnail_count + 1
+    local closest = nil
+
+    -- Naive, inefficient, lazy. But functional.
+    for index, value in pairs(self.state.thumbnails) do
+        local distance = math.abs(index - thumbnail_index)
+        if distance < min_distance and value > 0 then
+            min_distance = distance
+            closest = index
+        end
+    end
+    return closest
+end
+
+function Thumbnailer:get_thumbnail_index(time_position)
+    -- Returns a 1-based thumbnail index for the given timestamp (between 1 and thumbnail_count, inclusive)
+    if self.state.thumbnail_delta and (self.state.thumbnail_count and self.state.thumbnail_count > 0) then
+        return math.min(math.floor(time_position / self.state.thumbnail_delta) + 1, self.state.thumbnail_count)
+    else
+        return nil
+    end
+end
+
+function Thumbnailer:get_thumbnail_path(time_position)
+    -- Given a timestamp, return:
+    --   the closest available thumbnail path (if any)
+    --   the 1-based thumbnail index calculated from the timestamp
+    --   the 1-based thumbnail index of the closest available (and used) thumbnail
+    -- OR nil if thumbnails are not available.
+
+    local thumbnail_index = self:get_thumbnail_index(time_position)
+    if not thumbnail_index then return nil end
+
+    local closest = self:get_closest(thumbnail_index)
+
+    if closest ~= nil then
+        return self.state.thumbnail_template:format(closest-1), thumbnail_index, closest
+    else
+        return nil, thumbnail_index, nil
+    end
+end
+
+function Thumbnailer:register_client()
+    self.worker_register_timeout = mp.get_time() + 2
+
+    mp.register_script_message("mpv_thumbnail_script-ready", function(index, path)
+        self:on_thumb_ready(tonumber(index), path)
+    end)
+    mp.register_script_message("mpv_thumbnail_script-progress", function(index, path)
+        self:on_thumb_progress(tonumber(index), path)
+    end)
+
+    mp.register_script_message("mpv_thumbnail_script-worker", function(worker_name)
+        if not self.workers[worker_name] then
+            msg.debug("Registered worker", worker_name)
+            self.workers[worker_name] = true
+            mp.commandv("script-message-to", worker_name, "mpv_thumbnail_script-slaved")
+        end
+    end)
+
+    -- Notify workers to generate thumbnails when video loads/changes
+    -- This will be executed after the on_video_change (because it's registered after it)
+    mp.observe_property("video-dec-params", "native", function()
+        local duration = mp.get_property_native("duration")
+        local max_duration = thumbnailer_options.autogenerate_max_duration
+
+        if duration ~= nil and self.state.available and thumbnailer_options.autogenerate then
+            -- Notify if autogenerate is on and video is not too long
+            if duration < max_duration or max_duration == 0 then
+                self:start_worker_jobs()
+            end
+        end
+    end)
+
+    local thumb_script_key = not thumbnailer_options.disable_keybinds and "T" or nil
+    mp.add_key_binding(thumb_script_key, "generate-thumbnails", function()
+        if self.state.available then
+            mp.osd_message("Started thumbnailer jobs")
+            self:start_worker_jobs()
+        else
+            mp.osd_message("Thumbnailing unavailabe")
+        end
+    end)
+end
+
+function Thumbnailer:_create_thumbnail_job_order()
+    -- Returns a list of 1-based thumbnail indices in a job order
+    local used_frames = {}
+    local work_frames = {}
+
+    -- Pick frames in increasing frequency.
+    -- This way we can do a quick few passes over the video and then fill in the gaps.
+    for x = 6, 0, -1 do
+        local nth = (2^x)
+
+        for thi = 1, self.state.thumbnail_count, nth do
+            if not used_frames[thi] then
+                table.insert(work_frames, thi)
+                used_frames[thi] = true
+            end
+        end
+    end
+    return work_frames
+end
+
+function Thumbnailer:prepare_source_path()
+    local file_path = mp.get_property_native("path")
+
+    if self.state.is_remote and thumbnailer_options.remote_direct_stream then
+        -- Use the direct stream (possibly) provided by ytdl
+        -- This skips ytdl on the sub-calls, making the thumbnailing faster
+        -- Works well on YouTube, rest not really tested
+        file_path = mp.get_property_native("stream-path")
+
+        -- edl:// urls can get LONG. In which case, save the path (URL)
+        -- to a temporary file and use that instead.
+        local playlist_filename = join_paths(self.state.thumbnail_directory, "playlist.txt")
+
+        if #file_path > 8000 then
+            -- Path is too long for a playlist - just pass the original URL to
+            -- workers and allow ytdl
+            self.state.worker_extra.enable_ytdl = true
+            file_path = mp.get_property_native("path")
+            msg.warn("Falling back to original URL and ytdl due to LONG source path. This will be slow.")
+
+        elseif #file_path > 1024 then
+            local playlist_file = io.open(playlist_filename, "wb")
+            if not playlist_file then
+                msg.error(("Tried to write a playlist to %s but couldn't!"):format(playlist_file))
+                return false
+            end
+
+            playlist_file:write(file_path .. "\n")
+            playlist_file:close()
+
+            file_path = "--playlist=" .. playlist_filename
+            msg.warn("Using playlist workaround due to long source path")
+        end
+    end
+
+    self.state.worker_input_path = file_path
+    return true
+end
+
+function Thumbnailer:start_worker_jobs()
+    -- Create directory for the thumbnails, if needed
+    local l, err = utils.readdir(self.state.thumbnail_directory)
+    if err then
+        msg.debug("Creating thumbnail directory", self.state.thumbnail_directory)
+        create_directories(self.state.thumbnail_directory)
+    end
+
+    -- Try to prepare the source path for workers, and bail if unable to do so
+    if not self:prepare_source_path() then
+        return
+    end
+
+    local worker_list = {}
+    for worker_name in pairs(self.workers) do table.insert(worker_list, worker_name) end
+
+    local worker_count = #worker_list
+
+    -- In case we have a worker timer created already, clear it
+    -- (For example, if the video-dec-params change in quick succession or the user pressed T, etc)
+    if self.worker_wait_timer then
+        self.worker_wait_timer:stop()
+    end
+
+    if worker_count == 0 then
+        local now = mp.get_time()
+        if mp.get_time() > self.worker_register_timeout then
+            -- Workers have had their time to register but we have none!
+            local err = "No thumbnail workers found. Make sure you are not missing a script!"
+            msg.error(err)
+            mp.osd_message(err, 3)
+
+        else
+            -- We may be too early. Delay the work start a bit to try again.
+            msg.warn("No workers found. Waiting a bit more for them.")
+            -- Wait at least half a second
+            local wait_time = math.max(self.worker_register_timeout - now, 0.5)
+            self.worker_wait_timer = mp.add_timeout(wait_time, function() self:start_worker_jobs() end)
+        end
+
+    else
+        -- We have at least one worker. This may not be all of them, but they have had
+        -- their time to register; we've done our best waiting for them.
+        self.state.enabled = true
+
+        msg.debug( ("Splitting %d thumbnails amongst %d worker(s)"):format(self.state.thumbnail_count, worker_count) )
+
+        local frame_job_order = self:_create_thumbnail_job_order()
+        local worker_jobs = {}
+        for i = 1, worker_count do worker_jobs[worker_list[i]] = {} end
+
+        -- Split frames amongst the workers
+        for i, thumbnail_index in ipairs(frame_job_order) do
+            local worker_id = worker_list[ ((i-1) % worker_count) + 1 ]
+            table.insert(worker_jobs[worker_id], thumbnail_index)
+        end
+
+        local state_json_string = utils.format_json(self.state)
+        msg.debug("Giving workers state:", state_json_string)
+
+        for worker_name, worker_frames in pairs(worker_jobs) do
+            if #worker_frames > 0 then
+                local frames_json_string = utils.format_json(worker_frames)
+                msg.debug("Assigning job to", worker_name, frames_json_string)
+                mp.commandv("script-message-to", worker_name, "mpv_thumbnail_script-job", state_json_string, frames_json_string)
+            end
+        end
+    end
+end
+
+mp.register_event("start-file", function() Thumbnailer:on_start_file() end)
+mp.observe_property("video-dec-params", "native", function(name, params) Thumbnailer:on_video_change(params) end)
+
+
+-- osc_tethys ExecutableFinder checks
 ExecutableFinder.hasChecked = false
 ExecutableFinder.hasFfmpeg = false
 ExecutableFinder.hasMpv = false
@@ -372,59 +1329,50 @@ function ExecutableFinder:check()
     -- msg.warn("hasMpvNet", ExecutableFinder.hasMpvNet)
 end
 
+
+-- osc_tethys mpv_thumbnail_script overrides
+thumbnailer_options.thumbnail_width = tethys.thumbnailSize
+thumbnailer_options.thumbnail_height = tethys.thumbnailSize
+thumbnailer_options.mpv_no_config = true
+thumbnailer_options.mpv_no_sub = true
+thumbnailer_options.hide_progress = true -- Not implemented
+
+Thumbnailer:register_client()
+
+
 -- Thumbnail State
-local osCacheDir = ON_WINDOWS and os.getenv("TEMP") or "/tmp/"
-local thumb = {
-    overlayId = 1,
-    debounce = 0.15, -- Wait 150ms before rendering Thumbnail
-    dirPath = join_paths(osCacheDir, "mpv_tethys"),
-    thumbPathFormat = join_paths(osCacheDir, "mpv_tethys", "thumb-%06d.gbra"),
-    playlistPathFormat = join_paths(osCacheDir, "mpv_tethys", "playlist-%06d.gbra"),
-    preferMpv = true,
-    mpvNoConfig = true,
-    mpvNoSub = true,
-    mpvNoYtdl = true,
-    numThumbnails = 150,
-    minDelta = 5, -- Min 5s between thumbnails
-    maxDelta = 90, -- Max 1m30 between thumbnails
-}
 function ThumbState()
     return {
         overlayId = 1,
         visible = false,
         wasVisible = false,
-        index = nil,
-        timestamp = nil,
-        rendered = false,
-        renderedIndex = nil,
-        renderFailed = false,
-        renderAt = nil,
         thumbPath = nil,
-        videoPath = nil,
         globalWidth = nil,
         globalHeight = nil,
     }
 end
 local seekbarThumb = ThumbState()
 seekbarThumb.overlayId = 1
-seekbarThumb.thumbPathFormat = thumb.thumbPathFormat
-seekbarThumb.videoDuration = nil
-seekbarThumb.delta = nil
-seekbarThumb.cachedIndexes = {}
-local playlistThumb = ThumbState()
-playlistThumb.overlayId = 2
-playlistThumb.thumbPathFormat = thumb.playlistPathFormat
-playlistThumb.thumbPath = playlistThumb.thumbPathFormat:format(1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- Funcs
-function thumbInit()
-    -- Check if the thumbnail already exists and is the correct size
-    local thumbDir = io.open(thumb.dirPath, "rb")
-    if thumbDir == nil then
-        create_directories(thumb.dirPath)
-    end
-end
 
 function canShowThumb(videoPath)
     local isRemote = videoPath:find("://") ~= nil
@@ -459,75 +1407,6 @@ function hideThumbnail(thumbState)
         "overlay-remove", thumbState.overlayId,
     })
 end
-function getThumbIndex(thumbState, pos)
-    -- pos is video (0.0% .. 100.0%)
-    return math.floor((pos / 100) * thumbState.numThumbs)
-end
-function getThumbDeltaTime(thumbState)
-    if thumbState.delta == nil or thumbState.index == nil then
-        return 0
-    end
-    return thumbState.delta * thumbState.index
-end
-function updateThumbIndex(thumbState, videoPath, pos)
-    local fileChanged = not (videoPath == thumbState.videoPath)
-    if fileChanged then
-        thumbState.videoPath = videoPath
-
-        local curVideoPath = mp.get_property_native("path", nil)
-        local videoDuration = 0
-        if not (curVideoPath == nil) and videoPath == curVideoPath then
-            videoDuration = mp.get_property_number("duration", nil)
-            if (videoDuration == nil) or videoDuration <= 0 then
-                videoDuration = 0
-            end
-        end
-        thumbState.videoDuration = videoDuration
-
-        local targetDelta = thumbState.videoDuration / thumb.numThumbnails
-        thumbState.delta = math.max(thumb.minDelta, math.min(thumb.maxDelta, targetDelta))
-        thumbState.numThumbs = math.min(math.floor(thumbState.videoDuration / thumbState.delta)+1, thumb.numThumbnails)
-        thumbState.cachedIndexes = {}
-    end
-
-    local thumbIndex = getThumbIndex(thumbState, pos)
-    local indexChanged = not (thumbState.index == thumbIndex)
-    if fileChanged or indexChanged then
-        thumbState.index = thumbIndex
-        thumbState.thumbPath = thumbState.thumbPathFormat:format(thumbState.index)
-        local deltaTime = getThumbDeltaTime(thumbState)
-        thumbState.timestamp = mp.format_time(deltaTime)
-    end
-    return fileChanged or indexChanged
-end
-function requestThumbnail(thumbState, videoPath, timestamp, globalWidth, globalHeight)
-    -- msg.warn("requestThumbnail", thumbState.overlayId, timestamp, globalWidth, globalHeight)
-
-    if not ((thumbState.globalWidth == globalWidth) and (thumbState.globalHeight == globalHeight)) then
-        thumbState.globalWidth = globalWidth
-        thumbState.globalHeight = globalHeight
-        thumbState.cachedIndexes = {}
-    end
-
-    thumbState.videoPath = videoPath
-    thumbState.timestamp = timestamp
-
-    if thumbState.cachedIndexes[thumbState.index] then
-        thumbState.rendered = true
-        thumbState.renderedIndex = thumbState.index
-        return
-    else
-        -- Hide
-        hideThumbnail(thumbState)
-        -- Reset
-        thumbState.rendered = false
-        thumbState.renderedIndex = nil
-        thumbState.renderFailed = false
-        -- Request new thumbnail
-        thumbState.renderRequested = true
-        thumbState.renderAt = mp.get_time() + thumb.debounce
-    end
-end
 function thumbPreRender(thumbState)
     thumbState.wasVisible = thumbState.visible
     thumbState.visible = false
@@ -539,11 +1418,9 @@ function thumbPostRender(thumbState)
 end
 function preRenderThumbnails()
     thumbPreRender(seekbarThumb)
-    thumbPreRender(playlistThumb)
 end
 function postRenderThumbnails()
     thumbPostRender(seekbarThumb)
-    thumbPostRender(playlistThumb)
 end
 
 -- Render Utils
@@ -583,18 +1460,12 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     if not (videoWidth and videoHeight) then
         return
     end
-    local thumbWidth, thumbHeight
-    if videoWidth > videoHeight then
-        thumbWidth = tethys.thumbnailSize
-        thumbHeight = math.floor(videoHeight * tethys.thumbnailSize / videoWidth)
-    else
-        thumbWidth = math.floor(videoWidth * tethys.thumbnailSize / videoHeight)
-        thumbHeight = tethys.thumbnailSize
-    end
 
-    local thumbGlobalWidth = math.floor(thumbWidth / scaleX)
-    local thumbGlobalHeight = math.floor(thumbHeight / scaleY)
-    -- msg.warn("thumbWidth", thumbWidth, "thumbHeight", thumbHeight, "thumbGlobalWidth", thumbGlobalWidth, "thumbGlobalHeight", thumbGlobalHeight)
+    local thumb_size = Thumbnailer.state.thumbnail_size
+    local thumbGlobalWidth = thumb_size.w
+    local thumbGlobalHeight = thumb_size.h
+    local thumbWidth =  math.floor(thumbGlobalWidth * scaleX)
+    local thumbHeight =  math.floor(thumbGlobalHeight * scaleY)
 
     local chapter = get_chapter(thumbTime)
     local hasChapter = not (chapter == nil) and chapter.title and chapter.title ~= ""
@@ -667,21 +1538,15 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ass:append(tethysStyle.seekbarTimestamp)
     ass:append(timestampLabel)
 
-    local thumbChanged = updateThumbIndex(seekbarThumb, videoPath, sliderPos)
-    if thumbChanged then
-        -- msg.warn("thumbChanged", seekbarThumb.index, sliderPos)
-        if tethys.showThumbnails and canShowThumb(videoPath) then
-            requestThumbnail(
-                seekbarThumb,
-                seekbarThumb.videoPath,
-                seekbarThumb.timestamp,
-                thumbGlobalWidth,
-                thumbGlobalHeight
-            )
-        end
+    -- If thumbnails are not available, bail
+    if not (Thumbnailer.state.enabled and Thumbnailer.state.available) then
+        return
     end
 
-    if tethys.showThumbnails and seekbarThumb.rendered then
+    local thumbPath, thumbIndex, closestIndex = Thumbnailer:get_thumbnail_path(thumbTime)
+    -- msg.warn("renderThumbnailTooltip", thumbIndex, closestIndex, thumbPath)
+
+    if thumbPath then
         ---- Thumb BG/Outline
         ass:new_event()
         ass:pos(tooltipX, tooltipY)
@@ -703,6 +1568,9 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
         end
 
         ---- Render Thumbnail
+        seekbarThumb.thumbPath = thumbPath
+        seekbarThumb.globalWidth = thumbGlobalWidth
+        seekbarThumb.globalHeight = thumbGlobalHeight
         showThumbnail(seekbarThumb, thumbGlobalX, thumbGlobalY)
     end
 end
@@ -718,156 +1586,24 @@ function renderPlaylistTooltip(pos, playlistDelta, ass)
     local thumbTimestamp = mp.format_time(0.5)
     local thumbGlobalWidth = 100
     local thumbGlobalHeight = 100
-
-    local thumbChanged = not (playlistThumb.videoPath == videoPath)
-    if thumbChanged and tethys.showPlaylistThumbnails and canShowThumb(videoPath) then
-        requestThumbnail(
-            playlistThumb,
-            videoPath,
-            thumbTimestamp,
-            thumbGlobalWidth,
-            thumbGlobalHeight
-        )
-    end
-    if tethys.showPlaylistThumbnails and playlistThumb.rendered then
-        ---- Render Thumbnail
-        -- pos.an is bottom (1,2,3)
-        local scaleX, scaleY = get_virt_scale_factor()
-        local thumbWidth = playlistThumb.globalWidth * scaleX
-        local thumbHeight = playlistThumb.globalHeight * scaleX
-        local thumbX = pos.x - math.floor(thumbWidth/2)
-        local thumbY = pos.y - thumbHeight
-        local thumbGlobalX = math.floor(thumbX / scaleX)
-        local thumbGlobalY = math.floor(thumbY / scaleY)
-
-        ass:new_event()
-        ass:pos(thumbX, thumbY)
-        ass:append(("{\\bord0\\1c&H%s&\\1a&H%X&}"):format("000000", 0))
-        ass:draw_start()
-        ass:rect_cw(0, 0, thumbWidth, thumbHeight)
-        ass:draw_stop()
-
-        showThumbnail(playlistThumb, thumbGlobalX, thumbGlobalY)
-    end
 end
 
-function genThumbnailFfmpeg(thumbState)
-    -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
-    local ffmpegCommand = {
-        "ffmpeg",
-        "-loglevel", "quiet",
-        "-noaccurate_seek",
-        "-ss", thumbState.timestamp,
-        "-i", thumbState.videoPath,
 
-        "-frames:v", "1",
-        "-an",
 
-        "-vf", ("scale=%d:%d"):format(thumbState.globalWidth, thumbState.globalHeight),
-        "-c:v", "rawvideo",
-        "-pix_fmt", "bgra",
-        "-f", "rawvideo",
 
-        "-y", thumbState.thumbPath,
-    }
-    msg.warn(table.concat(ffmpegCommand, " "))
-    return utils.subprocess({args=ffmpegCommand})
-end
-function checkThumbnailOutput(thumbState, ret)
-    local success = true
-    if ret.killed_by_us then
-        return nil
-    else
-        if ret.error or ret.status ~= 0 then
-            msg.error("Thumbnailing command failed!")
-            msg.error("process error:", ret.error)
-            msg.error("Process stdout:", ret.stdout)
-            success = false
-        end
 
-        if not file_exists(thumbState.thumbPath) then
-            msg.error("Thumbnail file missing!", thumbState.thumbPath)
-            success = false
-        end
-    end
-    return success
-end
-function genThumbCallback(thumbState, ret)
-    local success = checkThumbnailOutput(thumbState, ret)
 
-    if success == nil then
-        -- Killed by us, changing files, ignore
-        msg.debug("Changing files, subprocess killed")
-        thumbState.renderFailed = true
-        return
-    elseif not success then
-        -- Real failure
-        thumbState.renderFailed = true
-        tethys.showThumbnails = false
-        mp.osd_message("Thumbnailing failed, check console for details", 3.5)
-        return
-    end
 
-    thumbState.cachedIndexes[thumbState.index] = true
-    thumbState.renderedIndex = thumbState.index
-    thumbState.rendered = true
-end
-function genThumbnailMpv(thumbState, callback)
-    -- Based on: https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/thumbnailer_server.lua
-    local mpvFilename = "mpv"
-    if not ExecutableFinder.hasMpv and ExecutableFinder.hasMpvNet then
-        mpvFilename = "mpvnet"
-    end
-    local mpvCommand = {
-        mpvFilename,
-        "--msg-level=all=error",
-        "--hwdec=no",
 
-        thumbState.videoPath,
 
-        "--start=" .. tostring(thumbState.timestamp),
-        "-frames", "1",
-        "--hr-seek=yes",
-        "--no-audio",
 
-        ("-vf=scale=%d:%d"):format(thumbState.globalWidth, thumbState.globalHeight),
-        "--vf-add=format=bgra",
-        "--of=rawvideo",
-        "--ovc=rawvideo",
-        "--o=" .. thumbState.thumbPath,
-    }
-    if thumb.mpvNoConfig then table.insert(mpvCommand, "--no-config") end
-    if thumb.mpvNoSub then table.insert(mpvCommand, "--no-sub") end
-    
-    local hasYtdl = mp.get_property_native("ytdl") == true
-    if thumb.mpvNoYtdl or not hasYtdl then table.insert(mpvCommand, "--no-ytdl") end
 
-    msg.warn(table.concat(mpvCommand, " "))
-    return utils.subprocess({args=mpvCommand})
-end
-function updateThumb(thumbState)
-    if tethys.showThumbnails and thumbState.renderRequested and thumbState.renderAt <= mp.get_time() then
-        thumbState.renderRequested = false
 
-        ---- Generate Thumbnail
-        local genThumbnailFunc
-        if thumb.preferMpv then
-            genThumbnailFunc = genThumbnailMpv
-        else
-            genThumbnailFunc = genThumbnailFfmpeg
-        end
-        local ret = genThumbnailFunc(thumbState)
-        genThumbCallback(thumbState, ret)
-    end
-end
 
-local thumbTick = function()
-    -- msg.warn("thumbTick")
-    updateThumb(seekbarThumb)
-    updateThumb(playlistThumb)
-end
 
-local thumbTimer = mp.add_periodic_timer(0.1, thumbTick)
+
+
+
 
 
 -- internal states, do not touch
@@ -3537,9 +4273,6 @@ function osc_init()
         function () mp.commandv("osd-auto", "add", "volume", 5) end
     ne.eventresponder["wheel_down_press"] =
         function () mp.commandv("osd-auto", "add", "volume", -5) end
-
-    -- thumbnails
-    thumbInit()
 
     -- load layout
     layouts[user_opts.layout]()
