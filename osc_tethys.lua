@@ -101,8 +101,6 @@ local tethys = {
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
     pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
     pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
-    showThumbnails = true, -- Show previews when hovering seekbar
-    showPlaylistThumbnails = false, -- Show previews when hovering playlist prev/next
 
     -- Sizes
     thumbnailSize = 256, -- 16:9 = 256x144
@@ -1314,8 +1312,7 @@ thumbnailer_options.thumbnail_width = tethys.thumbnailSize
 thumbnailer_options.thumbnail_height = tethys.thumbnailSize
 thumbnailer_options.mpv_no_config = true
 thumbnailer_options.mpv_no_sub = true
-thumbnailer_options.mpv_no_ytdl = true
-thumbnailer_options.mpv_no_ytdl = true
+thumbnailer_options.hide_progress = true -- Not implemented
 
 Thumbnailer:register_client()
 
