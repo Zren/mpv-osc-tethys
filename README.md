@@ -12,7 +12,7 @@ Picture-In-Picture button to position in the corner, on top of other windows, an
 
 ![](https://i.imgur.com/Ynlog81.png)
 
-### Install
+## Install
 
 (1) Copy `osc_tethys.lua`, `mpv_thumbnail_script_server.lua` and mpv's `autoload.lua` to
 
@@ -63,7 +63,7 @@ WHEEL_DOWN    seek -5 exact    # backward
 
 (4) Close and reopen MPV to view the new Tethys theme!
 
-### Configure
+## Configure
 
 If you don't like any of the default colors/sizes, you can create a few text files to configure certain settings.
 
@@ -216,7 +216,7 @@ audio=yes
 ignore_hidden=yes
 ```
 
-### Notes
+## Notes
 
 * https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua
 * https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua
@@ -228,7 +228,7 @@ ignore_hidden=yes
 * https://mpv.io/manual/master/
 * https://bomi-player.github.io/gallery.html (Tethys icon set designed by Kotus Works)
 
-### Other Themes
+## Other Themes
 
 I haven't tried these, but have used them as reference.
 
