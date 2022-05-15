@@ -63,6 +63,8 @@ WHEEL_DOWN    seek -5 exact    # backward
 
 ### Configure
 
+#### tethys.conf
+
 A complete list of configuration keys can be found at the top of [`osc_tethys.lua`](osc_tethys.lua).
 
 * Windows: `%APPDATA%\mpv\script-opts\tethys.conf`
@@ -111,7 +113,38 @@ seekbarCacheAlpha=128
 chapterTickColor=CCCCCC
 ```
 
-A complete list of configuration keys for mpv_thumbnail_script can [be found here](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [it's documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
+#### osc.conf
+
+A complete list of configuration keys for inherited `osc.lua` can [be found in the source code](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) or [it's documentation](https://mpv.io/manual/master/#configurable-options).
+
+Note that tethys ignores a few options in `osc.conf` that are already covered by `tethys.conf`.
+
+* Windows: `%APPDATA%\mpv\script-opts\osc.conf`
+* Linux: `~/.config/mpv/script-opts/osc.conf`
+
+```ini
+# While not fully implemented, you can also select other layouts like:
+# box, slimbox, bottombar and topbar
+layout=tethys
+
+# Whether to display the chapters/playlist at the OSD when left-clicking the next/previous OSC buttons, respectively.
+playlist_osd=yes
+chapters_osd=yes
+
+# Duration of fade out in ms, 0 = no fade
+fadeduration=200
+
+# Minimum amount of pixels the mouse has to move between ticks to make the OSC show up. Default pre-0.21.0 was 3.
+minmousemove=0
+
+# auto=hide/show on mouse move
+# Also supports never and always
+visibility=auto
+```
+
+#### mpv_thumbnail_script.conf
+
+A complete list of configuration keys for mpv_thumbnail_script can [be found in the source code](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [it's documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
 
 Note that `tethys.conf`'s `thumbnailSize` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces to `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
 
@@ -168,6 +201,16 @@ remote_max_delta=120
 # Try to grab the raw stream and disable ytdl for the mpv subcalls
 # Much faster than passing the url to ytdl again, but may cause problems with some sites
 remote_direct_stream=true
+```
+
+#### autoload.lua
+
+```ini
+disabled=no
+images=yes
+videos=yes
+audio=yes
+ignore_hidden=yes
 ```
 
 ### Notes
