@@ -123,10 +123,6 @@ Note that tethys ignores a few options in `osc.conf` that are already covered by
 * Linux: `~/.config/mpv/script-opts/osc.conf`
 
 ```ini
-# While not fully implemented, you can also select other layouts like:
-# box, slimbox, bottombar and topbar
-layout=tethys
-
 # Whether to display the chapters/playlist at the OSD when left-clicking the next/previous OSC buttons, respectively.
 playlist_osd=yes
 chapters_osd=yes
