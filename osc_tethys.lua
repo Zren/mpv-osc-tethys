@@ -113,6 +113,7 @@ local tethys = {
     cacheTextSize = 20,
     timecodeSize = 27,
     seekbarTimestampSize = 30,
+    seekbarTimestampOutline = 1,
     chapterTickSize = 6,
     windowTitleOutline = 1,
 
@@ -195,7 +196,7 @@ local tethysStyle = {
     timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
     seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
-    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(user_opts.tooltipborder, tethys.textColor, tethys.seekbarTimestampSize),
+    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.seekbarTimestampOutline, tethys.textColor, tethys.seekbarTimestampSize),
     text = genColorStyle(tethys.textColor),
     seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
     seekbarFg = genColorStyle(tethys.seekbarFgColor),
