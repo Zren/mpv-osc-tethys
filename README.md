@@ -61,7 +61,11 @@ WHEEL_UP      seek  5 exact    # forward
 WHEEL_DOWN    seek -5 exact    # backward
 ```
 
+(4) Close and reopen MPV to view the new Tethys theme!
+
 ### Configure
+
+If you don't like any of the default colors/sizes, you can create a few text files to configure certain settings.
 
 #### tethys.conf
 
