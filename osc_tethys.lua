@@ -3,6 +3,140 @@ local msg = require 'mp.msg'
 local opt = require 'mp.options'
 local utils = require 'mp.utils'
 
+-- Windows: C:\Users\USER\AppData\Roaming\mpv\script-opts\tethys.conf
+-- Linux: ~/config/mpv/script-opts/tethys.conf
+local tethys = {
+    -- Config
+    skipBy = 5, -- skipback/skipfrwd amount in seconds
+    skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
+    skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
+    pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
+    pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
+
+    -- Sizes
+    thumbnailSize = 256, -- 16:9 = 256x144
+    seekbarHeight = 20,
+    controlsHeight = 64,
+    buttonTooltipSize = 20,
+    windowBarHeight = 44,
+    windowButtonSize = 44,
+    windowTitleSize = 24,
+    cacheTextSize = 20,
+    timecodeSize = 27,
+    seekbarTimestampSize = 30,
+    seekbarTimestampOutline = 1,
+    chapterTickSize = 6,
+    windowTitleOutline = 1,
+
+    -- Misc
+    osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
+
+    -- Colors (uses GGBBRR for some reason)
+    -- Alpha ranges 0 (opache) .. 255 (transparent)
+    textColor = "FFFFFF",
+    buttonColor = "CCCCCC",
+    buttonHoveredColor = "FFFFFF",
+    buttonHoveredRectColor = "000000",
+    buttonHoveredRectAlpha = 255, -- Easily debug button geometry by setting to 80
+    tooltipColor = "CCCCCC",
+    windowBarColor = "000000",
+    windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
+    windowButtonColor = "CCCCCC",
+    closeButtonHoveredColor = "1111DD", -- #DD1111
+    seekbarHandleColor = "FFFFFF",
+    seekbarFgColor = "483DD7", -- #d73d48
+    seekbarBgColor = "929292",
+    seekbarCacheColor = "000000",
+    seekbarCacheAlpha = 128,
+    chapterTickColor = "CCCCCC",
+}
+read_options(tethys, "tethys")
+
+
+tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
+tethys.buttonW = tethys.controlsHeight
+tethys.buttonH = tethys.controlsHeight
+tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
+tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
+tethys.windowControlsRect = {
+    w = tethys.windowButtonSize * 3,
+    h = tethys.windowBarHeight,
+}
+
+tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
+tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
+
+tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
+
+tethys.isPictureInPicture = false
+tethys.pipWasFullscreen = false
+tethys.pipWasMaximized = false
+tethys.pipWasOnTop = false
+tethys.pipHadBorders = false
+
+
+-- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
+function genColorStyle(color)
+    return "{\\c&H"..color.."&}" -- Not sure why &H...& is used in santa_hat_lines
+    -- return "{\\c("..color..")}" -- Works
+    -- return "{\\c(#"..color..")}" -- Only works for paths, and breaks other stuff.
+end
+
+---- mpv's stats.lua has some ASS formatting
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L62
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L176
+-- "{\\r}{\\an7}{\\fs%d}{\\fn%s}{\\bord%f}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H%s&}{\\xshad%f}{\\yshad%f}{\\4c&H%s&}"
+-- {\\bord%f} = border size
+-- {\\3c&H%s&} = border color
+-- {\\1c&H%s&} = font color
+-- {\\alpha&H%s&} = alpha
+-- {\\xshad%f}{\\yshad%f} = shadow x,y offset
+-- {\\4c&H%s&} = shadow color
+---- \\q2 in windowTitle is unknown
+---- Not sure why \1c is rect fill color. Here's docs for \3c:
+-- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
+-- "{\\1c&H"..color.."}"
+local tethysStyle = {
+    button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
+    buttonHovered = genColorStyle(tethys.buttonHoveredColor),
+    buttonHoveredRect = ("{\\rDefault\\blur0\\bord0\\1c&H%s\\1a&H%X&}"):format(tethys.buttonHoveredRectColor, tethys.buttonHoveredRectAlpha),
+    smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
+    trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
+    windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
+    windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
+    closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
+    windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
+    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.tooltipColor, tethys.buttonTooltipSize),
+    timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
+    cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
+    seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
+    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.seekbarTimestampOutline, tethys.textColor, tethys.seekbarTimestampSize),
+    text = genColorStyle(tethys.textColor),
+    seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
+    seekbarFg = genColorStyle(tethys.seekbarFgColor),
+    seekbarBg = genColorStyle(tethys.seekbarBgColor),
+    seekbarCache = genColorStyle(tethys.seekbarCacheColor),
+    chapterTick = genColorStyle(tethys.chapterTickColor),
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 --
 -- Parameters
 --
@@ -91,118 +225,6 @@ local osc_styles = {
     wcButtons = "{\\1c&HFFFFFF\\fs24\\fnmpv-osd-symbols}",
     wcTitle = "{\\1c&HFFFFFF\\fs24\\q2}",
     wcBar = "{\\1c&H000000}",
-}
-
-
-local tethys = {
-    -- Config
-    skipBy = 5, -- skipback/skipfrwd amount in seconds
-    skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
-    skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
-    pipGeometry = "33%+-10+-10", -- PictureInPicture 33% screen width, 10px from bottom right
-    pipAllWorkspaces = true, -- PictureInPicture will show video on all virtual desktops
-
-    -- Sizes
-    thumbnailSize = 256, -- 16:9 = 256x144
-    seekbarHeight = 20,
-    controlsHeight = 64,
-    buttonTooltipSize = 20,
-    windowBarHeight = 44,
-    windowButtonSize = 44,
-    windowTitleSize = 24,
-    cacheTextSize = 20,
-    timecodeSize = 27,
-    seekbarTimestampSize = 30,
-    seekbarTimestampOutline = 1,
-    chapterTickSize = 6,
-    windowTitleOutline = 1,
-
-    -- Misc
-    osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
-
-    -- Colors (uses GGBBRR for some reason)
-    -- Alpha ranges 0 (opache) .. 255 (transparent)
-    textColor = "FFFFFF",
-    buttonColor = "CCCCCC",
-    buttonHoveredColor = "FFFFFF",
-    buttonHoveredRectColor = "000000",
-    buttonHoveredRectAlpha = 255, -- Easily debug button geometry by setting to 80
-    tooltipColor = "CCCCCC",
-    windowBarColor = "000000",
-    windowBarAlpha = 255, -- (80 is mpv default) (255 morden default)
-    windowButtonColor = "CCCCCC",
-    closeButtonHoveredColor = "1111DD", -- #DD1111
-    seekbarHandleColor = "FFFFFF",
-    seekbarFgColor = "483DD7", -- #d73d48
-    seekbarBgColor = "929292",
-    seekbarCacheColor = "000000",
-    seekbarCacheAlpha = 128,
-    chapterTickColor = "CCCCCC",
-}
-tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
-tethys.buttonW = tethys.controlsHeight
-tethys.buttonH = tethys.controlsHeight
-tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
-tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
-tethys.windowControlsRect = {
-    w = tethys.windowButtonSize * 3,
-    h = tethys.windowBarHeight,
-}
-
-tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
-tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
-
-tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
-
-tethys.isPictureInPicture = false
-tethys.pipWasFullscreen = false
-tethys.pipWasMaximized = false
-tethys.pipWasOnTop = false
-tethys.pipHadBorders = false
-
-
--- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
-function genColorStyle(color)
-    return "{\\c&H"..color.."&}" -- Not sure why &H...& is used in santa_hat_lines
-    -- return "{\\c("..color..")}" -- Works
-    -- return "{\\c(#"..color..")}" -- Only works for paths, and breaks other stuff.
-end
-
----- mpv's stats.lua has some ASS formatting
--- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L62
--- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L176
--- "{\\r}{\\an7}{\\fs%d}{\\fn%s}{\\bord%f}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H%s&}{\\xshad%f}{\\yshad%f}{\\4c&H%s&}"
--- {\\bord%f} = border size
--- {\\3c&H%s&} = border color
--- {\\1c&H%s&} = font color
--- {\\alpha&H%s&} = alpha
--- {\\xshad%f}{\\yshad%f} = shadow x,y offset
--- {\\4c&H%s&} = shadow color
----- \\q2 in windowTitle is unknown
----- Not sure why \1c is rect fill color. Here's docs for \3c:
--- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
--- "{\\1c&H"..color.."}"
-local tethysStyle = {
-    button = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.buttonH, tethys.osdSymbolFont),
-    buttonHovered = genColorStyle(tethys.buttonHoveredColor),
-    buttonHoveredRect = ("{\\rDefault\\blur0\\bord0\\1c&H%s\\1a&H%X&}"):format(tethys.buttonHoveredRectColor, tethys.buttonHoveredRectAlpha),
-    smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
-    trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
-    windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
-    windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
-    closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
-    windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
-    buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.tooltipColor, tethys.buttonTooltipSize),
-    timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
-    cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
-    seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
-    seekbarTimestamp = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.seekbarTimestampOutline, tethys.textColor, tethys.seekbarTimestampSize),
-    text = genColorStyle(tethys.textColor),
-    seekbarHandle = genColorStyle(tethys.seekbarHandleColor),
-    seekbarFg = genColorStyle(tethys.seekbarFgColor),
-    seekbarBg = genColorStyle(tethys.seekbarBgColor),
-    seekbarCache = genColorStyle(tethys.seekbarCacheColor),
-    chapterTick = genColorStyle(tethys.chapterTickColor),
 }
 
 
