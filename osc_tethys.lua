@@ -32,7 +32,7 @@ local tethys = {
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
 
     -- Colors (uses GGBBRR for some reason)
-    -- Alpha ranges 0 (opache) .. 255 (transparent)
+    -- Alpha ranges 0 (opaque) .. 255 (transparent)
     textColor = "FFFFFF",
     buttonColor = "CCCCCC",
     buttonHoveredColor = "FFFFFF",
