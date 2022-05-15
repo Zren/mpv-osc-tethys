@@ -205,6 +205,9 @@ remote_direct_stream=true
 
 #### autoload.lua
 
+* Windows: `%APPDATA%\mpv\script-opts\autoload.conf`
+* Linux: `~/.config/mpv/script-opts/autoload.conf`
+
 ```ini
 disabled=no
 images=yes
