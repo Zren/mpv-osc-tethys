@@ -142,7 +142,7 @@ visibility=auto
 
 A complete list of configuration keys for mpv_thumbnail_script can [be found in the source code](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [it's documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
 
-Note that `tethys.conf`'s `thumbnailSize` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces to `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
+Note that `tethys.conf`'s `thumbnailSize` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
 
 * Windows: `%APPDATA%\mpv\script-opts\mpv_thumbnail_script.conf`
 * Linux: `~/.config/mpv/script-opts/mpv_thumbnail_script.conf`
