@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="44"
-   height="44"
-   viewBox="0 0 44 44"
+   width="28"
+   height="28"
+   viewBox="0 0 28 28"
    version="1.1"
    id="svg947"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
@@ -24,8 +24,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="8"
-     inkscape:cx="0.875"
-     inkscape:cy="25.875"
+     inkscape:cx="3.75"
+     inkscape:cy="20.625"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
      inkscape:window-x="0"
@@ -43,42 +43,41 @@
     <marker
        style="overflow:visible"
        id="DiamondS"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="DiamondS"
        inkscape:isstock="true">
       <path
-         transform="scale(1)"
          d="M -1.4164253,0.00218916 0.70489503,2.1235095 1.4120018,1.4164027 -0.00221177,0.00218918 1.4120018,-1.4120244 0.70489503,-2.1191312 Z"
          id="path9242" />
     </marker>
     <marker
        style="overflow:visible"
        id="DiamondSOrig"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="DiamondS"
        inkscape:isstock="true">
       <path
          transform="scale(0.2)"
-         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
-         d="M 0,-7.0710768 L -7.0710894,0 L 0,7.0710589 L 7.0710462,0 L 0,-7.0710768 z "
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 0,-7.0710768 -7.0710894,0 0,7.0710589 7.0710462,0 Z"
          id="path6" />
     </marker>
     <marker
        style="overflow:visible"
        id="SquareL"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="SquareL"
        inkscape:isstock="true">
       <path
          transform="scale(0.8)"
-         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
-         d="M -5.0,-5.0 L -5.0,5.0 L 5.0,5.0 L 5.0,-5.0 L -5.0,-5.0 z "
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M -5,-5 V 5 H 5 V -5 Z"
          id="path9227" />
     </marker>
     <marker
@@ -114,7 +113,7 @@
     <path
        id="sadfasdfadf"
        style="color:#000000;display:inline;fill:#000000;stroke-width:1.06418;-inkscape-stroke:none"
-       d="M 10.511898,7.9999999 V 17.57764 h 9.577641 v -3.192547 h -3.926252 c 3.377311,-2.385404 7.930235,-2.505902 11.469058,-0.141336 4.028979,2.692078 5.587288,7.829923 3.732951,12.306685 -1.854335,4.476763 -6.589763,7.008261 -11.34227,6.062929 -4.752506,-0.945333 -8.158037,-5.09784 -8.158037,-9.943453 H 8.6724422 c 0,6.349074 4.4999608,11.835002 10.7270398,13.073645 6.227079,1.238643 12.485494,-2.105194 14.915179,-7.970974 C 36.744346,21.906809 34.684352,15.114815 29.40529,11.587458 26.765759,9.8237796 23.680838,9.1171475 20.694376,9.4112885 18.187051,9.6582384 15.750413,10.61433 13.704444,12.242179 V 7.9999999 Z"
+       d="M 2.5118981,-1.67644e-7 V 9.5776399 H 12.089539 V 6.3850929 H 8.1632871 c 3.3773109,-2.385404 7.9302349,-2.505902 11.4690579,-0.141336 4.028979,2.692078 5.587288,7.8299231 3.732951,12.3066851 -1.854335,4.476763 -6.589763,7.008261 -11.34227,6.062929 C 7.2705201,23.668038 3.8649891,19.515531 3.8649891,14.669918 H 0.67244229 c 0,6.349074 4.49996081,11.835002 10.72703971,13.073645 6.227079,1.238643 12.485494,-2.105194 14.915179,-7.970974 C 28.744346,13.906809 26.684352,7.1148149 21.40529,3.5874579 18.765759,1.8237795 15.680838,1.1171474 12.694376,1.4112884 10.187051,1.6582383 7.7504131,2.6143299 5.7044441,4.2421789 V -1.67644e-7 Z"
        sodipodi:nodetypes="cccccsssccssssccc" />
   </g>
 </svg>

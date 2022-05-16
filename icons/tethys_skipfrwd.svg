@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="44"
-   height="44"
-   viewBox="0 0 44 44"
+   width="28"
+   height="28"
+   viewBox="0 0 28 28"
    version="1.1"
    id="svg947"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
@@ -43,42 +43,41 @@
     <marker
        style="overflow:visible"
        id="DiamondS"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="DiamondS"
        inkscape:isstock="true">
       <path
-         transform="scale(1)"
          d="M -1.4164253,0.00218916 0.70489503,2.1235095 1.4120018,1.4164027 -0.00221177,0.00218918 1.4120018,-1.4120244 0.70489503,-2.1191312 Z"
          id="path9242" />
     </marker>
     <marker
        style="overflow:visible"
        id="DiamondSOrig"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="DiamondS"
        inkscape:isstock="true">
       <path
          transform="scale(0.2)"
-         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
-         d="M 0,-7.0710768 L -7.0710894,0 L 0,7.0710589 L 7.0710462,0 L 0,-7.0710768 z "
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 0,-7.0710768 -7.0710894,0 0,7.0710589 7.0710462,0 Z"
          id="path6" />
     </marker>
     <marker
        style="overflow:visible"
        id="SquareL"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="SquareL"
        inkscape:isstock="true">
       <path
          transform="scale(0.8)"
-         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
-         d="M -5.0,-5.0 L -5.0,5.0 L 5.0,5.0 L 5.0,-5.0 L -5.0,-5.0 z "
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M -5,-5 V 5 H 5 V -5 Z"
          id="path9227" />
     </marker>
     <marker
@@ -113,7 +112,7 @@
     <path
        id="sadfasdfadf"
        style="color:#000000;fill:#000000;stroke-width:1.06418;-inkscape-stroke:none"
-       d="M 33.488102,7.9999999 V 17.57764 h -9.577641 v -3.192547 h 3.926251 c -3.37731,-2.385404 -7.930234,-2.505902 -11.469057,-0.141336 -4.028979,2.692078 -5.587288,7.829923 -3.732951,12.306685 1.854335,4.476763 6.589763,7.008261 11.34227,6.062929 4.752505,-0.945333 8.158037,-5.09784 8.158037,-9.943453 h 3.192547 c 0,6.349074 -4.499961,11.835002 -10.72704,13.073645 C 18.373439,36.982206 12.115024,33.638369 9.6853386,27.772589 7.2556536,21.906809 9.3156476,15.114815 14.59471,11.587458 17.234241,9.8237796 20.319162,9.1171475 23.305624,9.4112885 25.812949,9.6582384 28.249586,10.61433 30.295555,12.242179 V 7.9999999 Z"
+       d="M 25.488102,-1.67644e-7 V 9.5776399 h -9.577641 v -3.192547 h 3.926251 C 16.459402,3.9996889 11.906478,3.8791909 8.367655,6.2437569 4.338676,8.9358349 2.780367,14.07368 4.634704,18.550442 c 1.854335,4.476763 6.589763,7.008261 11.34227,6.062929 4.752505,-0.945333 8.158037,-5.09784 8.158037,-9.943453 h 3.192547 c 0,6.349074 -4.499961,11.835002 -10.72704,13.073645 C 10.373439,28.982206 4.115024,25.638369 1.6853386,19.772589 -0.74434639,13.906809 1.3156476,7.1148149 6.59471,3.5874579 9.234241,1.8237795 12.319162,1.1171474 15.305624,1.4112884 c 2.507325,0.2469499 4.943962,1.2030415 6.989931,2.8308905 V -1.67644e-7 Z"
        sodipodi:nodetypes="cccccsssccssssccc" />
   </g>
 </svg>
