@@ -3479,7 +3479,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("skipback")
     lo.geometry = geo
@@ -3496,7 +3496,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("skipfrwd")
     lo.geometry = geo
@@ -3513,7 +3513,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("ch_prev")
     lo.geometry = geo
@@ -3537,7 +3537,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("ch_next")
     lo.geometry = geo
@@ -3565,7 +3565,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 4, -- x,y is left-center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("volume")
     lo.geometry = geo
@@ -3582,7 +3582,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is left-center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("tog_fs")
     lo.geometry = geo
@@ -3598,7 +3598,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is left-center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("tog_pip")
     lo.geometry = geo
@@ -3651,7 +3651,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("pl_next")
     lo.geometry = geo
@@ -3676,7 +3676,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = smallButtonSize,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("pl_prev")
     lo.geometry = geo
@@ -3706,7 +3706,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 6, -- x,y is right-center
         w = 110,
-        h = smallButtonSize,
+        h = buttonH,
     }
     lo = add_layout("cache")
     lo.geometry = geo
