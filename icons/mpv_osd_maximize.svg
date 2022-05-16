@@ -6,7 +6,7 @@
    sodipodi:docname="mpv_osd_maximize.svg"
    width="44"
    height="44"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -33,7 +33,7 @@
      inkscape:current-layer="svg4" />
   <path
      fill="currentColor"
-     d="M 24,22 H 0 V 0 H 24 Z M 22,20 V 4 H 2 v 16 z"
+     d="M 34,33 H 10 V 11 H 34 Z M 32,31 V 15 H 12 v 16 z"
      id="path2"
      style="stroke-width:0.03125" />
 </svg>
