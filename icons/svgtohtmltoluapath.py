@@ -1,8 +1,10 @@
 import re
 import subprocess
 import os
+import sys
 
 canvasSizePattern = re.compile(r'    \<canvas id=\'canvas\' width=\'(-?\d+(\.\d+)?)\' height=\'(-?\d+(\.\d+)?)\'\>\<\/canvas\>')
+transformPattern = re.compile(r'\tctx.transform\(.+')
 moveToPattern = re.compile(r'\tctx.moveTo\((-?\d+\.\d+), (-?\d+\.\d+)\);')
 lineToPattern = re.compile(r'\tctx.lineTo\((-?\d+\.\d+), (-?\d+\.\d+)\);')
 curveToPattern = re.compile(r'\tctx.bezierCurveTo\((-?\d+\.\d+), (-?\d+\.\d+), (-?\d+\.\d+), (-?\d+\.\d+), (-?\d+\.\d+), (-?\d+\.\d+)\);')
@@ -47,6 +49,12 @@ def generatePath(filepath):
 				# print('size', cmd)
 				path.append(cmd)
 				continue
+			m = transformPattern.match(line)
+			if m:
+				print("[error] filepath:", filepath)
+				print("Cannot parse ctx.transform()")
+				print("Please ungroup path to remove transormation")
+				sys.exit(1)
 			m = moveToPattern.match(line)
 			if m:
 				x = cleanNum(m.group(1))

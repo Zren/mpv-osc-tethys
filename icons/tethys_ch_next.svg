@@ -54,18 +54,15 @@
        x="2.7755576e-17"
        y="0"
        style="display:none;image-rendering:pixelated" />
-    <g
-       id="g827">
-      <path
-         style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00264584;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-         d="m 12.444166,12.5 c 1.482227,1.026159 1.482227,1.473842 0,2.500001 C 7.4260973,18.474048 2.944164,21.5 1.9441645,21.5 c -0.99999963,0 -0.99999963,-1.499999 -0.99999963,-7.75 0,-5.749999 0,-7.25 0.99999963,-7.25 0.9999995,0 5.4819328,2.5259525 10.5000015,6 z"
-         id="path5673"
-         sodipodi:nodetypes="ssscss" />
-      <path
-         style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00264584;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-         d="m 25.944165,12.5 c 1.482227,1.026159 1.482227,1.473842 0,2.500001 C 20.926096,18.474048 16.444163,21.5 15.444164,21.5 c -1,0 -1,-1.499999 -1,-7.75 0,-5.749999 0,-7.25 1,-7.25 0.999999,0 5.481932,2.5259525 10.500001,6 z"
-         id="path5673-7"
-         sodipodi:nodetypes="ssscss" />
-    </g>
+    <path
+       style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00264584;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
+       d="m 12.444166,12.5 c 1.482227,1.026159 1.482227,1.473842 0,2.500001 C 7.4260973,18.474048 2.944164,21.5 1.9441645,21.5 c -0.99999963,0 -0.99999963,-1.499999 -0.99999963,-7.75 0,-5.749999 0,-7.25 0.99999963,-7.25 0.9999995,0 5.4819328,2.5259525 10.5000015,6 z"
+       id="path5673"
+       sodipodi:nodetypes="ssscss" />
+    <path
+       style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00264584;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
+       d="m 25.944165,12.5 c 1.482227,1.026159 1.482227,1.473842 0,2.500001 C 20.926096,18.474048 16.444163,21.5 15.444164,21.5 c -1,0 -1,-1.499999 -1,-7.75 0,-5.749999 0,-7.25 1,-7.25 0.999999,0 5.481932,2.5259525 10.500001,6 z"
+       id="path5673-7"
+       sodipodi:nodetypes="ssscss" />
   </g>
 </svg>
