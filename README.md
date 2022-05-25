@@ -59,6 +59,9 @@ RIGHT seek  5 exact            # forward
 LEFT  seek -5 exact            # backward
 WHEEL_UP      seek  5 exact    # forward
 WHEEL_DOWN    seek -5 exact    # backward
+# Seek by exactly 30s instead of relative+keyframes 60s
+UP    seek  30 exact           # forward
+DOWN  seek -30 exact           # backward
 ```
 
 (4) Close and reopen MPV to view the new Tethys theme!
