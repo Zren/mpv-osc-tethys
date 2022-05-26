@@ -3731,9 +3731,9 @@ layouts["tethys"] = function()
     -- Volume
     -- Icon is forcibly left aligned for some reason
     geo = {
-        x = leftX + leftSectionWidth,
+        x = leftX + leftSectionWidth + smallButtonSize/2,
         y = line1Y + buttonH/2,
-        an = 4, -- x,y is left-center
+        an = 5, -- x,y is center
         w = smallButtonSize,
         h = buttonH,
     }
@@ -3750,7 +3750,7 @@ layouts["tethys"] = function()
     geo = {
         x = rightX - rightSectionWidth - smallButtonSize/2,
         y = line1Y + buttonH/2,
-        an = 5, -- x,y is left-center
+        an = 5, -- x,y is center
         w = smallButtonSize,
         h = buttonH,
     }
@@ -3766,7 +3766,7 @@ layouts["tethys"] = function()
     geo = {
         x = rightX - rightSectionWidth - smallButtonSize/2,
         y = line1Y + buttonH/2,
-        an = 5, -- x,y is left-center
+        an = 5, -- x,y is center
         w = smallButtonSize,
         h = buttonH,
     }
