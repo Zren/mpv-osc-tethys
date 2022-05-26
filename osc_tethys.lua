@@ -265,6 +265,180 @@ local osc_styles = {
 
 
 
+---- Tooltip Utils
+-- See MPV's stats.lua for a full example (Shortcut: I + 4)
+-- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L433
+local bindings = mp.get_property_native("input-bindings", {})
+local active = {}  -- map: key-name -> bind-info
+for _, bind in pairs(bindings) do
+    if bind.priority >= 0 and (
+           not active[bind.key] or
+           (active[bind.key].is_weak and not bind.is_weak) or
+           (bind.is_weak == active[bind.key].is_weak and
+            bind.priority > active[bind.key].priority)
+       ) and not bind.cmd:find("script-binding stats/__forced_", 1, true)
+    then
+        active[bind.key] = bind
+    end
+end
+local ordered = {}
+for _, bind in pairs(active) do
+    table.insert(ordered, bind)
+    _,_, bind.mods = bind.key:find("(.*)%+.")
+    _, bind.mods_count = bind.key:gsub("%+.", "")
+end
+table.sort(ordered, function(a, b)
+    if a.subject ~= b.subject then
+        return a.subject < b.subject
+    elseif a.mods_count ~= b.mods_count then
+        return a.mods_count < b.mods_count
+    elseif a.mods ~= b.mods then
+        return a.mods < b.mods
+    elseif a.key:len() ~= b.key:len() then
+        return a.key:len() < b.key:len()
+    elseif a.key:lower() ~= b.key:lower() then
+        return a.key:lower() < b.key:lower()
+    else
+        return a.key > b.key  -- only case differs, lowercase first
+    end
+end)
+-- for _, bind in pairs(ordered) do
+--     jsonstr, err = utils.format_json(bind)
+--     print(jsonstr)
+-- end
+
+function grepBindByCmd(pattern, ignoredKeys)
+    ignoredKeys = ignoredKeys or {}
+    local cmdBinds = {}
+    for _, bind in pairs(ordered) do
+        local ignored = false
+        for _, ignoredKey in pairs(ignoredKeys) do
+            if bind.key == ignoredKey then
+                ignored = true
+                break
+            end
+        end
+        if not ignored and bind.cmd:find(pattern) then
+            -- print(bind.key, bind.cmd)
+            cmdBinds[#cmdBinds+1] = bind
+        end
+    end
+    return cmdBinds
+end
+
+function formatBindKey(key)
+    if key == 'PGUP' then return 'PgUp'
+    elseif key == 'PGDWN' then return 'PgDn'
+    elseif key == 'UP' then return '⇧'
+    elseif key == 'DOWN' then return '⇩'
+    elseif key == 'LEFT' then return '⇦'
+    elseif key == 'RIGHT' then return '⇨'
+    elseif key == 'SHARP' then return '#'
+    else return key
+    end
+end
+function formatBinds(binds)
+    local str = ""
+    for i, bind in pairs(binds) do
+        if i ~= 1 then -- lua arrays start at 1
+            str = str .. " or "
+        end
+        str = str .. formatBindKey(bind.key)
+    end
+    return str
+end
+function formatSeekBind(bind)
+    local seekBy = bind.cmd:match("^seek%s+(%-?%d+)")
+    seekBy = tonumber(seekBy)
+    local label 
+    if seekBy < 0 then
+        return ("Back %ds (%s)"):format(-seekBy, formatBindKey(bind.key))
+    else
+        return ("Forward %ds (%s)"):format(seekBy, formatBindKey(bind.key))
+    end
+end
+function formatSeekBinds(binds)
+    local list = {}
+    for i, bind in pairs(binds) do
+        table.insert(list, formatSeekBind(bind))
+    end
+    return list
+end
+
+---- Filter bindings by commands using regex
+---- Keys passed into grepBindByCmd() are ignored.
+-- %s+ = One or more spaces
+-- %- = A literal dash '-'
+-- %-? = May or may not contain a dash
+-- %d+ = One or more digits from 0 to 9
+-- (%-?%d+) = Positive or negative integer
+local pauseBinds = grepBindByCmd("^cycle(%s+)pause", {"p", "PLAYPAUSE", "MBTN_RIGHT", "PLAY", "PAUSE"})
+local seekBackBinds = grepBindByCmd("^seek(%s+)(%-%d+)", {"REWIND", "Shift+PGDWN"})
+local seekFrwdBinds = grepBindByCmd("^seek(%s+)(%d+)", {"FORWARD", "Shift+PGUP"})
+local muteBinds = grepBindByCmd("^cycle(%s+)mute", {"MUTE"})
+local volDnBinds = grepBindByCmd("^add(%s+)volume(%s+)(%-%d+)", {"VOLUME_DOWN", "WHEEL_LEFT"})
+local volUpBinds = grepBindByCmd("^add(%s+)volume(%s+)(%d+)", {"VOLUME_UP", "WHEEL_RIGHT"})
+local plPrevBinds = grepBindByCmd("^playlist%-prev", {"PREV", "MBTN_BACK"})
+local plNextBinds = grepBindByCmd("^playlist%-next", {"NEXT", "MBTN_FORWARD"})
+local chPrevBinds = grepBindByCmd("^add chapter (%-%d+)", {})
+local chNextBinds = grepBindByCmd("^add chapter (%d+)", {})
+local audioBinds = grepBindByCmd("^cycle(%s+)audio", {})
+local subBinds = grepBindByCmd("^cycle(%s+)sub$", {})
+local fullscreenBinds = grepBindByCmd("^cycle(%s+)fullscreen", {"MBTN_LEFT_DBL"})
+---- Generate tooltips
+local pauseTooltip = ("Play (%s)"):format(formatBinds(pauseBinds))
+local seekBackTooltip = formatSeekBinds(seekBackBinds)
+local seekFrwdTooltip = formatSeekBinds(seekFrwdBinds)
+local muteTooltip = formatBinds(muteBinds)
+local volDnTooltip = formatBinds(volDnBinds)
+local volUpTooltip = formatBinds(volUpBinds)
+local volTooltip = {
+    -- ("Volume Down (%s) Up (%s)"):format(volDnTooltip, volUpTooltip),
+    ("Volume Down (%s)"):format(volDnTooltip),
+    ("Volume Up (%s)"):format(volUpTooltip),
+    ("Mute (%s)"):format(muteTooltip)
+}
+local plPrevTooltip = ("Previous (%s)"):format(formatBinds(plPrevBinds))
+local plNextTooltip = ("Next (%s)"):format(formatBinds(plNextBinds))
+local chPrevTooltip = ("Prev Chapter (%s)"):format(formatBinds(chPrevBinds))
+local chNextTooltip = ("Next Chapter (%s)"):format(formatBinds(chNextBinds))
+local audioTooltip = ("Audio Track (%s)"):format(formatBinds(audioBinds))
+local subTooltip = ("Subtitle Track (%s)"):format(formatBinds(subBinds))
+local pipTooltip = "Picture In Picture"
+local fullscreenTooltip = ("Fullscreen (%s)"):format(formatBinds(fullscreenBinds))
+-- print("pauseTooltip", pauseTooltip)
+-- print("seekBackTooltip", utils.format_json(seekBackTooltip))
+-- print("seekFrwdTooltip", utils.format_json(seekFrwdTooltip))
+-- print("muteTooltip", muteTooltip)
+-- print("volDnTooltip", volDnTooltip)
+-- print("volUpTooltip", volUpTooltip)
+-- print("volTooltip", utils.format_json(volTooltip))
+-- print("plPrevTooltip", plPrevTooltip)
+-- print("plNextTooltip", plNextTooltip)
+-- print("chPrevTooltip", chPrevTooltip)
+-- print("chNextTooltip", chNextTooltip)
+-- print("audioTooltip", audioTooltip)
+-- print("subTooltip", subTooltip)
+-- print("pipTooltip", pipTooltip)
+-- print("fullscreenTooltip", fullscreenTooltip)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ---- Playlist / Chapter Utils
 function getDeltaListItem(listKey, curKey, delta, clamp)
@@ -3469,7 +3643,7 @@ layouts["tethys"] = function()
     lo = add_layout("playpause")
     lo.geometry = geo
     lo.style = tethysStyle.button
-    setButtonTooltip(lo, "Play (Space)")
+    setButtonTooltip(lo, pauseTooltip)
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Skip Backwards
@@ -3483,10 +3657,7 @@ layouts["tethys"] = function()
     lo = add_layout("skipback")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, {
-        ("Back %ds (LeftArrow)"):format(tethys.skipBy),
-        ("Back %ds (RightClick)"):format(tethys.skipByMore),
-    })
+    setButtonTooltip(lo, seekBackTooltip)
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Skip Forwards
@@ -3500,10 +3671,7 @@ layouts["tethys"] = function()
     lo = add_layout("skipfrwd")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, {
-        ("Forward %ds (RightArrow)"):format(tethys.skipBy),
-        ("Forward %ds (RightClick)"):format(tethys.skipByMore),
-    })
+    setButtonTooltip(lo, seekFrwdTooltip)
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Chapter Prev
@@ -3518,7 +3686,7 @@ layouts["tethys"] = function()
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, function()
-        local shortcutLabel = "Prev Chapter (PgDn)"
+        local shortcutLabel = chPrevTooltip
         local prevChapter = getDeltaChapter(-1)
         if prevChapter == nil then
             return { shortcutLabel }
@@ -3542,7 +3710,7 @@ layouts["tethys"] = function()
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
     setButtonTooltip(lo, function()
-        local shortcutLabel = "Next Chapter (PgUp)"
+        local shortcutLabel = chNextTooltip
         local nextChapter = getDeltaChapter(1)
         if nextChapter == nil then
             return { shortcutLabel }
@@ -3569,7 +3737,7 @@ layouts["tethys"] = function()
     lo = add_layout("volume")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, {"Volume Down (9) Up (0)", "Mute (M)"})
+    setButtonTooltip(lo, volTooltip)
     if elements["volume"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
     end
@@ -3586,7 +3754,7 @@ layouts["tethys"] = function()
     lo = add_layout("tog_fs")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Fullscreen (F)")
+    setButtonTooltip(lo, fullscreenTooltip)
     if elements["tog_fs"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3602,7 +3770,7 @@ layouts["tethys"] = function()
     lo = add_layout("tog_pip")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, "Picture In Picture")
+    setButtonTooltip(lo, pipTooltip)
     if elements["tog_pip"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3620,7 +3788,7 @@ layouts["tethys"] = function()
     lo = add_layout("cy_sub")
     lo.geometry = geo
     lo.style = tethysStyle.trackButton
-    setButtonTooltip(lo, "Subtitle Track")
+    setButtonTooltip(lo, subTooltip)
     if elements["cy_sub"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3636,7 +3804,7 @@ layouts["tethys"] = function()
     lo = add_layout("cy_audio")
     lo.geometry = geo
     lo.style = tethysStyle.trackButton
-    setButtonTooltip(lo, "Audio Track (#)")
+    setButtonTooltip(lo, audioTooltip)
     if elements["cy_audio"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
