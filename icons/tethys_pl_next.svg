@@ -7,7 +7,7 @@
    viewBox="0 0 28 28"
    version="1.1"
    id="svg947"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="tethys_pl_next.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -25,7 +25,7 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="8.0000001"
-     inkscape:cx="20.0625"
+     inkscape:cx="20.125"
      inkscape:cy="17.25"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
@@ -56,12 +56,12 @@
        style="display:none;image-rendering:pixelated" />
     <path
        style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00388056;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-       d="m 16.866668,8.8 c 2.173933,1.505034 2.173933,2.161635 0,3.666668 C 9.5068343,17.561937 2.933332,22 1.466666,22 0,22 0,19.800002 0,10.633333 0,2.2000015 0,0 1.466666,0 2.933332,0 9.5068343,3.7047303 16.866668,8.8 Z"
+       d="m 17.866668,11.8 c 2.173933,1.505034 2.173933,2.161635 0,3.666668 C 10.506834,20.561937 3.933332,25 2.466666,25 1,25 1,22.800002 1,13.633333 1,5.2000015 1,3 2.466666,3 c 1.466666,0 8.040168,3.7047303 15.400002,8.8 z"
        id="path5673"
        sodipodi:nodetypes="ssscss" />
     <path
        style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00392512;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-       d="m 26,20.103196 c 0,2.528705 -6.574631,2.528705 -6.574631,0.0022 V 1.8965279 c 0,-2.52870388 6.574631,-2.52870388 6.574631,0 z"
+       d="m 27,23.103196 c 0,2.528705 -6.574631,2.528705 -6.574631,0.0022 V 4.8965279 c 0,-2.5287039 6.574631,-2.5287039 6.574631,0 z"
        id="path5673-3"
        sodipodi:nodetypes="csssc" />
   </g>

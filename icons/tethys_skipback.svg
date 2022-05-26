@@ -2,13 +2,13 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="44"
-   height="44"
-   viewBox="0 0 44 44"
+   width="28"
+   height="28"
+   viewBox="0 0 28 28"
    version="1.1"
    id="svg947"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
-   sodipodi:docname="netflix_skipback.svg"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="tethys_skipback.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -24,8 +24,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="8"
-     inkscape:cx="0.875"
-     inkscape:cy="25.875"
+     inkscape:cx="3.75"
+     inkscape:cy="20.625"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
      inkscape:window-x="0"
@@ -43,42 +43,41 @@
     <marker
        style="overflow:visible"
        id="DiamondS"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="DiamondS"
        inkscape:isstock="true">
       <path
-         transform="scale(1)"
          d="M -1.4164253,0.00218916 0.70489503,2.1235095 1.4120018,1.4164027 -0.00221177,0.00218918 1.4120018,-1.4120244 0.70489503,-2.1191312 Z"
          id="path9242" />
     </marker>
     <marker
        style="overflow:visible"
        id="DiamondSOrig"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="DiamondS"
        inkscape:isstock="true">
       <path
          transform="scale(0.2)"
-         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
-         d="M 0,-7.0710768 L -7.0710894,0 L 0,7.0710589 L 7.0710462,0 L 0,-7.0710768 z "
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 0,-7.0710768 -7.0710894,0 0,7.0710589 7.0710462,0 Z"
          id="path6" />
     </marker>
     <marker
        style="overflow:visible"
        id="SquareL"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="SquareL"
        inkscape:isstock="true">
       <path
          transform="scale(0.8)"
-         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
-         d="M -5.0,-5.0 L -5.0,5.0 L 5.0,5.0 L 5.0,-5.0 L -5.0,-5.0 z "
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M -5,-5 V 5 H 5 V -5 Z"
          id="path9227" />
     </marker>
     <marker
@@ -110,11 +109,11 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     sodipodi:insensitive="true">
+     style="display:inline">
     <path
        id="sadfasdfadf"
-       style="color:#000000;fill:#000000;stroke-width:1.06418;-inkscape-stroke:none"
-       d="M 1.8394556,0 V 9.5776405 H 11.417097 V 6.3850934 H 7.4908453 C 10.868156,3.9996888 15.42108,3.8791909 18.959903,6.2437567 22.988882,8.9358354 24.547191,14.07368 22.692854,18.550442 20.838519,23.027205 16.103091,25.558703 11.350584,24.613371 6.5980783,23.668038 3.1925467,19.515531 3.1925467,14.669918 H 0 C 0,21.018992 4.499961,26.50492 10.72704,27.743563 16.954119,28.982206 23.212534,25.638369 25.642219,19.772589 28.071904,13.906809 26.01191,7.1148148 20.732848,3.5874581 18.093317,1.8237797 15.008396,1.1171476 12.021934,1.4112886 9.5146087,1.6582385 7.0779713,2.6143299 5.0320023,4.2421796 V 0 Z"
+       style="color:#000000;display:inline;fill:#000000;stroke-width:1.06418;-inkscape-stroke:none"
+       d="M 2.5118981,-1.67644e-7 V 9.5776399 H 12.089539 V 6.3850929 H 8.1632871 c 3.3773109,-2.385404 7.9302349,-2.505902 11.4690579,-0.141336 4.028979,2.692078 5.587288,7.8299231 3.732951,12.3066851 -1.854335,4.476763 -6.589763,7.008261 -11.34227,6.062929 C 7.2705201,23.668038 3.8649891,19.515531 3.8649891,14.669918 H 0.67244229 c 0,6.349074 4.49996081,11.835002 10.72703971,13.073645 6.227079,1.238643 12.485494,-2.105194 14.915179,-7.970974 C 28.744346,13.906809 26.684352,7.1148149 21.40529,3.5874579 18.765759,1.8237795 15.680838,1.1171474 12.694376,1.4112884 10.187051,1.6582383 7.7504131,2.6143299 5.7044441,4.2421789 V -1.67644e-7 Z"
        sodipodi:nodetypes="cccccsssccssssccc" />
   </g>
 </svg>

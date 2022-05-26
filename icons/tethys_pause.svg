@@ -7,7 +7,7 @@
    viewBox="0 0 44 44"
    version="1.1"
    id="svg947"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="tethys_pause.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -25,8 +25,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="16"
-     inkscape:cx="13.75"
-     inkscape:cy="19.5"
+     inkscape:cx="13.4375"
+     inkscape:cy="22.4375"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
      inkscape:window-x="0"
@@ -56,12 +56,12 @@
        style="display:none" />
     <path
        style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00780556;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-       d="M 13,40.2064 C 13,45.263808 0,45.263808 0,40.2107 V 3.7930566 c 0,-5.0574088 13,-5.0574088 13,0 z"
+       d="m 17.5,40.2064 c 0,5.057408 -13,5.057408 -13,0.0043 V 3.7930566 c 0,-5.0574088 13,-5.0574088 13,0 z"
        id="path5673"
        sodipodi:nodetypes="csssc" />
     <path
        style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.00780556;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline"
-       d="m 35,40.2064 c 0,5.057408 -13,5.057408 -13,0.0043 V 3.7930569 c 0,-5.0574088 13,-5.0574088 13,0 z"
+       d="m 39.5,40.2064 c 0,5.057408 -13,5.057408 -13,0.0043 V 3.7930569 c 0,-5.0574088 13,-5.0574088 13,0 z"
        id="path5673-3"
        sodipodi:nodetypes="csssc" />
   </g>

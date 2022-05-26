@@ -6,7 +6,7 @@
    sodipodi:docname="mpv_osd_close.svg"
    width="44"
    height="44"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -23,8 +23,8 @@
      inkscape:pagecheckerboard="0"
      showgrid="false"
      inkscape:zoom="13.664"
-     inkscape:cx="28.542155"
-     inkscape:cy="23.858314"
+     inkscape:cx="28.61534"
+     inkscape:cy="23.346019"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
      inkscape:window-x="0"
@@ -33,7 +33,7 @@
      inkscape:current-layer="svg4" />
   <path
      fill="currentColor"
-     d="M 24,24 H 20.571428 L 12,15.535715 3.5357143,24 H 0 V 20.571428 L 8.4642855,12 0,3.5357143 V 0 H 3.5357143 L 12,8.4642855 20.571428,0 H 24 V 3.5357143 L 15.535715,12 24,20.464285 Z"
+     d="M 34,34 H 30.571428 L 22,25.535715 13.535714,34 H 10 V 30.571428 L 18.464286,22 10,13.535714 V 10 h 3.535714 L 22,18.464286 30.571428,10 H 34 v 3.535714 L 25.535715,22 34,30.464285 Z"
      id="path2"
      style="stroke-width:0.0357143" />
 </svg>

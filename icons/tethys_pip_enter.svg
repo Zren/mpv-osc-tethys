@@ -24,7 +24,7 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="11.313709"
-     inkscape:cx="10.606602"
+     inkscape:cx="10.606601"
      inkscape:cy="10.429825"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
@@ -47,6 +47,6 @@
     <path
        id="rect1139"
        style="vector-effect:non-scaling-stroke;fill:#f9f9f9;fill-opacity:0.522519;stroke:#000000;stroke-width:0.01;-inkscape-stroke:hairline"
-       d="m 12,13 h 8 v 5 H 12 Z M 0,2 c 0,0 0,17 0,18 0,1 1,2 2,2 1,0 20,0 20,0 1,0 2,-1 2,-2 V 2 C 24,1 23,0 22,0 H 2 C 1,0 0,1 0,2 Z M 2,2 H 22 V 20 H 2 Z" />
+       d="m 14,16 h 8 v 5 H 14 Z M 2,5 c 0,0 0,17 0,18 0,1 1,2 2,2 1,0 20,0 20,0 1,0 2,-1 2,-2 V 5 C 26,4 25,3 24,3 H 4 C 3,3 2,4 2,5 Z M 4,5 H 24 V 23 H 4 Z" />
   </g>
 </svg>
