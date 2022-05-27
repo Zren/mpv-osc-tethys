@@ -400,13 +400,13 @@ function formatBinds(binds)
     return str
 end
 function formatSeekBind(bind)
-    local seekBy = bind.cmd:match("^seek%s+(%-?%d+)")
-    seekBy = tonumber(seekBy)
+    local seekBy = bind.cmd:match("^seek%s+([%+%-]?[%d%.]+)")
+    seekBy = tonumber(seekBy) -- Note: +0.1 is parsed okay
     local label 
     if seekBy < 0 then
-        return ("Back %ds %s"):format(-seekBy, formatBindKey(bind.key))
+        return ("Back %ss %s"):format(-seekBy, formatBindKey(bind.key))
     else
-        return ("Forward %ds %s"):format(seekBy, formatBindKey(bind.key))
+        return ("Forward %ss %s"):format(seekBy, formatBindKey(bind.key))
     end
 end
 function formatSeekBinds(binds)
@@ -425,8 +425,8 @@ end
 -- %d+ = One or more digits from 0 to 9
 -- (%-?%d+) = Positive or negative integer
 local pauseBinds = grepBindByCmd("^cycle(%s+)pause", {"p", "PLAYPAUSE", "MBTN_RIGHT", "PLAY", "PAUSE"})
-local seekBackBinds = grepBindByCmd("^seek(%s+)(%-%d+)", {"REWIND", "Shift+PGDWN"})
-local seekFrwdBinds = grepBindByCmd("^seek(%s+)(%d+)", {"FORWARD", "Shift+PGUP"})
+local seekBackBinds = grepBindByCmd("^seek(%s+)(%-[%d%.]+)", {"REWIND", "Shift+PGDWN"})
+local seekFrwdBinds = grepBindByCmd("^seek(%s+)(%+?[%d%.]+)", {"FORWARD", "Shift+PGUP"})
 local muteBinds = grepBindByCmd("^cycle(%s+)mute", {"MUTE"})
 local volDnBinds = grepBindByCmd("^add(%s+)volume(%s+)(%-%d+)", {"VOLUME_DOWN", "WHEEL_LEFT"})
 local volUpBinds = grepBindByCmd("^add(%s+)volume(%s+)(%d+)", {"VOLUME_UP", "WHEEL_RIGHT"})
