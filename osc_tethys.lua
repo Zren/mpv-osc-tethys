@@ -330,6 +330,43 @@ function grepBindByCmd(pattern, ignoredKeys)
     return cmdBinds
 end
 
+function grepSpeedBinds()
+    local downBinds = {}
+    local upBinds = {}
+    for _, bind in pairs(ordered) do
+        if (
+            bind.cmd:find("^add(%s+)speed(%s+)(%d+)$")
+            or bind.cmd:find("^add(%s+)speed(%s+)(%d+%.%d+)$")
+        ) then
+            upBinds[#upBinds+1] = bind
+        elseif (
+            bind.cmd:find("^add(%s+)speed(%s+)(%-%d+)$")
+            or bind.cmd:find("^add(%s+)speed(%s+)(%-%d+%.%d+)$")
+            or bind.cmd:find("^multiply(%s+)speed(%s+)1/(%d+%.%d+)$")
+            or bind.cmd:find("^multiply(%s+)speed(%s+)1%.0/(%d+%.%d+)$")
+        ) then
+            downBinds[#downBinds+1] = bind
+        elseif bind.cmd:find("^multiply(%s+)speed(%s+)(%d+)$") then
+            local x = bind.cmd:match("^multiply%s+speed%s+(%d+)$")
+            x = tonumber(x)
+            if x < 1 then
+                downBinds[#downBinds+1] = bind
+            else
+                upBinds[#upBinds+1] = bind
+            end
+        elseif bind.cmd:find("^multiply(%s+)speed(%s+)(%d+%.%d+)$") then
+            local x = bind.cmd:match("^multiply%s+speed%s+(%d+%.%d+)$")
+            x = tonumber(x)
+            if x < 1 then
+                downBinds[#downBinds+1] = bind
+            else
+                upBinds[#upBinds+1] = bind
+            end
+        end
+    end
+    return downBinds, upBinds
+end
+
 function formatBindKey(key)
     if key == 'PGUP' then return 'PgUp'
     elseif key == 'PGDWN' then return 'PgDn'
@@ -338,6 +375,9 @@ function formatBindKey(key)
     elseif key == 'LEFT' then return '⇦'
     elseif key == 'RIGHT' then return '⇨'
     elseif key == 'SHARP' then return '#'
+    elseif key == 'BS' then return 'Backspace'
+    elseif key == '{' then return '\\{'
+    elseif key == '}' then return '\\}'
     else return key
     end
 end
@@ -388,6 +428,8 @@ local chPrevBinds = grepBindByCmd("^add chapter (%-%d+)", {})
 local chNextBinds = grepBindByCmd("^add chapter (%d+)", {})
 local audioBinds = grepBindByCmd("^cycle(%s+)audio", {})
 local subBinds = grepBindByCmd("^cycle(%s+)sub$", {})
+local speedResetBinds = grepBindByCmd("^set(%s+)speed(%s+)1", {})
+local speedDnBinds, speedUpBinds = grepSpeedBinds()
 local fullscreenBinds = grepBindByCmd("^cycle(%s+)fullscreen", {"MBTN_LEFT_DBL"})
 ---- Generate tooltips
 local pauseTooltip = ("Play (%s)"):format(formatBinds(pauseBinds))
@@ -408,6 +450,15 @@ local chPrevTooltip = ("Prev Chapter (%s)"):format(formatBinds(chPrevBinds))
 local chNextTooltip = ("Next Chapter (%s)"):format(formatBinds(chNextBinds))
 local audioTooltip = ("Audio Track (%s)"):format(formatBinds(audioBinds))
 local subTooltip = ("Subtitle Track (%s)"):format(formatBinds(subBinds))
+local speedResetTooltip = formatBinds(speedResetBinds)
+local speedDnTooltip = formatBinds(speedDnBinds)
+local speedUpTooltip = formatBinds(speedUpBinds)
+local speedTooltip = {
+    -- ("Volume Down (%s) Up (%s)"):format(volDnTooltip, volUpTooltip),
+    ("Slower (%s)"):format(speedDnTooltip),
+    ("Faster (%s)"):format(speedUpTooltip),
+    ("Reset (%s)"):format(speedResetTooltip)
+}
 local pipTooltip = "Picture In Picture"
 local fullscreenTooltip = ("Fullscreen (%s)"):format(formatBinds(fullscreenBinds))
 -- print("pauseTooltip", pauseTooltip)
@@ -423,6 +474,10 @@ local fullscreenTooltip = ("Fullscreen (%s)"):format(formatBinds(fullscreenBinds
 -- print("chNextTooltip", chNextTooltip)
 -- print("audioTooltip", audioTooltip)
 -- print("subTooltip", subTooltip)
+-- print("speedResetTooltip", speedResetTooltip)
+-- print("speedDnTooltip", speedDnTooltip)
+-- print("speedUpTooltip", speedUpTooltip)
+-- print("speedTooltip", utils.format_json(speedTooltip))
 -- print("pipTooltip", pipTooltip)
 -- print("fullscreenTooltip", fullscreenTooltip)
 
@@ -3789,7 +3844,7 @@ layouts["tethys"] = function()
     lo = add_layout("speed")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, volTooltip)
+    setButtonTooltip(lo, speedTooltip)
     if elements["speed"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
