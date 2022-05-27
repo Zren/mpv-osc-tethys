@@ -3899,7 +3899,7 @@ layouts["tethys"] = function()
     lo.style = tethysStyle.smallButton
     lo.button.playlist = 1
     setButtonTooltip(lo, function()
-        local shortcutLabel = "Next (> or Enter)"
+        local shortcutLabel = plNextTooltip
         local nextItem = getDeltaPlaylistItem(1)
         if nextItem == nil then
             return { shortcutLabel }
@@ -3924,7 +3924,7 @@ layouts["tethys"] = function()
     lo.style = tethysStyle.smallButton
     lo.button.playlist = -1
     setButtonTooltip(lo, function()
-        local shortcutLabel = "Previous (<)"
+        local shortcutLabel = plPrevTooltip
         local nextItem = getDeltaPlaylistItem(-1)
         if nextItem == nil then
             return { shortcutLabel }
