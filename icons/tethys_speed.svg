@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="28"
+   height="28"
+   viewBox="0 0 28 28"
+   version="1.1"
+   id="svg947"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="tethys_speed.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview949"
+     pagecolor="#00df8d"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="px"
+     showgrid="true"
+     inkscape:zoom="22.627417"
+     inkscape:cx="18.782524"
+     inkscape:cy="12.683728"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     units="px"
+     viewbox-width="11.64167">
+    <inkscape:grid
+       type="xygrid"
+       id="grid5671" />
+  </sodipodi:namedview>
+  <defs
+     id="defs944">
+    <marker
+       style="overflow:visible"
+       id="DiamondS"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="DiamondS"
+       inkscape:isstock="true">
+      <path
+         d="M -1.4164253,0.00218916 0.70489503,2.1235095 1.4120018,1.4164027 -0.00221177,0.00218918 1.4120018,-1.4120244 0.70489503,-2.1191312 Z"
+         id="path9242" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="DiamondSOrig"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="DiamondS"
+       inkscape:isstock="true">
+      <path
+         transform="scale(0.2)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 0,-7.0710768 -7.0710894,0 0,7.0710589 7.0710462,0 Z"
+         id="path6" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="SquareL"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="SquareL"
+       inkscape:isstock="true">
+      <path
+         transform="scale(0.8)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M -5,-5 V 5 H 5 V -5 Z"
+         id="path9227" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="DiamondS-3"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="DiamondS"
+       inkscape:isstock="true">
+      <path
+         d="M -1.4164253,0.00218916 0.70489503,2.1235095 1.4120018,1.4164027 -0.00221177,0.00218918 1.4120018,-1.4120244 0.70489503,-2.1191312 Z"
+         id="path9242-6" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="DiamondS-5"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="DiamondS"
+       inkscape:isstock="true">
+      <path
+         d="M -1.4164253,0.00218916 0.70489503,2.1235095 1.4120018,1.4164027 -0.00221177,0.00218918 1.4120018,-1.4120244 0.70489503,-2.1191312 Z"
+         id="path9242-3" />
+    </marker>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       id="path1552"
+       style="color:#000000;fill:#000000;-inkscape-stroke:none"
+       d="m 14,2.0537108 c -3.585788,-1e-7 -7.1723657,1.3637724 -9.9003906,4.0917969 -5.4560495,5.4560493 -5.4560494,14.3447313 0,19.8007813 L 6.0175781,24.02832 c -4.420427,-4.420427 -4.4204271,-11.544417 0,-15.9648436 4.4204279,-4.4204267 11.5444159,-4.4204269 15.9648439,0 4.420427,4.4204266 4.420427,11.5444166 0,15.9648436 l 1.917969,1.917969 c 5.456049,-5.45605 5.456049,-14.344732 0,-19.8007814 C 21.172366,3.4174831 17.585788,2.0537108 14,2.0537108 Z m 3.886719,7.9804682 -3.535157,3.53711 A 2.5,2.5 0 0 0 14,13.545898 a 2.5,2.5 0 0 0 -2.5,2.5 2.5,2.5 0 0 0 2.5,2.5 2.5,2.5 0 0 0 2.5,-2.5 2.5,2.5 0 0 0 -0.02539,-0.353516 l 3.535157,-3.537109 z" />
+  </g>
+</svg>
