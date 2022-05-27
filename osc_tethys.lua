@@ -339,28 +339,23 @@ function grepSpeedBinds()
     local downBinds = {}
     local upBinds = {}
     for _, bind in pairs(ordered) do
-        if (
-            bind.cmd:find("^add(%s+)speed(%s+)(%d+)$")
-            or bind.cmd:find("^add(%s+)speed(%s+)(%d+%.%d+)$")
-        ) then
+        if bind.cmd:find("^add(%s+)speed(%s+)(%+?[%d%.]+)$") then
             upBinds[#upBinds+1] = bind
-        elseif (
-            bind.cmd:find("^add(%s+)speed(%s+)(%-%d+)$")
-            or bind.cmd:find("^add(%s+)speed(%s+)(%-%d+%.%d+)$")
-            or bind.cmd:find("^multiply(%s+)speed(%s+)1/(%d+%.%d+)$")
-            or bind.cmd:find("^multiply(%s+)speed(%s+)1%.0/(%d+%.%d+)$")
-        ) then
+        elseif bind.cmd:find("^add(%s+)speed(%s+)(%-[%d%.]+)$") then
             downBinds[#downBinds+1] = bind
-        elseif bind.cmd:find("^multiply(%s+)speed(%s+)(%d+)$") then
-            local x = bind.cmd:match("^multiply%s+speed%s+(%d+)$")
-            x = tonumber(x)
-            if x < 1 then
+        elseif bind.cmd:find("^multiply(%s+)speed(%s+)([%d%.]+)/([%d%.]+)$") then
+            local num, den = bind.cmd:match("^multiply%s+speed%s+([%d%.]+)/([%d%.]+)$")
+            print("num", num)
+            print("den", den)
+            num = tonumber(num) -- numerator
+            den = tonumber(den) -- denominator
+            if num < den then
                 downBinds[#downBinds+1] = bind
             else
                 upBinds[#upBinds+1] = bind
             end
-        elseif bind.cmd:find("^multiply(%s+)speed(%s+)(%d+%.%d+)$") then
-            local x = bind.cmd:match("^multiply%s+speed%s+(%d+%.%d+)$")
+        elseif bind.cmd:find("^multiply(%s+)speed(%s+)([%d%.]+)$") then
+            local x = bind.cmd:match("^multiply%s+speed%s+([%d%.]+)$")
             x = tonumber(x)
             if x < 1 then
                 downBinds[#downBinds+1] = bind
