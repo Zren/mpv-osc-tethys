@@ -130,6 +130,10 @@ Note that tethys ignores a few options in `osc.conf` that are already covered by
 * Linux: `~/.config/mpv/script-opts/osc.conf`
 
 ```ini
+# Timestamp
+timetotal=no # Display total time instead of remaining time
+timems=no # Display timecodes with milliseconds
+
 # Whether to display the chapters/playlist at the OSD when left-clicking the next/previous OSC buttons, respectively.
 playlist_osd=yes
 chapters_osd=yes
