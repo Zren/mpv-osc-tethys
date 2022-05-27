@@ -345,8 +345,6 @@ function grepSpeedBinds()
             downBinds[#downBinds+1] = bind
         elseif bind.cmd:find("^multiply(%s+)speed(%s+)([%d%.]+)/([%d%.]+)$") then
             local num, den = bind.cmd:match("^multiply%s+speed%s+([%d%.]+)/([%d%.]+)$")
-            print("num", num)
-            print("den", den)
             num = tonumber(num) -- numerator
             den = tonumber(den) -- denominator
             if num < den then
@@ -4529,8 +4527,6 @@ function osc_init()
     ne.eventresponder["mbtn_left_up"] = function ()
         local speed = mp.get_property_number("speed", 1)
         local normalDiff = math.abs(speed - 1)
-        print("speed", speed)
-        print("normalDiff", normalDiff, math.abs(speed - 1) >= 0.1)
         if normalDiff >= 0.1 then
             mp.commandv("osd-auto", "set", "speed", 1)
         else
