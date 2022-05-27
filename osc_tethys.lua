@@ -65,6 +65,7 @@ tethys.windowControlsRect = {
 
 tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
 tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
+tethys.tooltipAlphaTable =  {[1] = 0, [2] = 255, [3] = 88, [4] = 255} -- Opache Text, 65% opacity outlines
 
 tethys.showButtonHoveredRect = tethys.buttonHoveredRectAlpha < 255 -- Note: 255=transparent
 
@@ -92,6 +93,7 @@ end
 -- {\\alpha&H%s&} = alpha
 -- {\\xshad%f}{\\yshad%f} = shadow x,y offset
 -- {\\4c&H%s&} = shadow color
+-- {\\b(400)} = font weight, 400=normal, 700=bold
 ---- \\q2 in windowTitle is unknown
 ---- Not sure why \1c is rect fill color. Here's docs for \3c:
 -- https://github.com/libass/libass/wiki/Libass'-ASS-Extensions#borderstyle4
@@ -107,6 +109,7 @@ local tethysStyle = {
     closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
     windowTitle = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.windowTitleOutline, tethys.textColor, tethys.windowTitleSize),
     buttonTooltip = ("{\\blur0\\bord(1)\\1c&H%s\\3c&H000000\\fs(%d)}"):format(tethys.tooltipColor, tethys.buttonTooltipSize),
+    buttonKeybindFormat = ("{\\bord(3)\\b(700)} %s {\\bord(1)\\b(400)}"), -- Spaces around the key to accound for thick outlines
     timecode = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.timecodeSize),
     cacheText = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.textColor, tethys.cacheTextSize, tethys.osdSymbolFont),
     seekbar = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)}"):format(tethys.seekbarFgColor, tethys.seekbarHeight),
@@ -367,7 +370,7 @@ function grepSpeedBinds()
     return downBinds, upBinds
 end
 
-function formatBindKey(key)
+function humanBindKey(key)
     if key == 'PGUP' then return 'PgUp'
     elseif key == 'PGDWN' then return 'PgDn'
     elseif key == 'UP' then return '⇧'
@@ -380,6 +383,9 @@ function formatBindKey(key)
     elseif key == '}' then return '\\}'
     else return key
     end
+end
+function formatBindKey(key)
+    return tethysStyle.buttonKeybindFormat:format(humanBindKey(key))
 end
 function formatBinds(binds)
     local str = ""
@@ -396,9 +402,9 @@ function formatSeekBind(bind)
     seekBy = tonumber(seekBy)
     local label 
     if seekBy < 0 then
-        return ("Back %ds (%s)"):format(-seekBy, formatBindKey(bind.key))
+        return ("Back %ds %s"):format(-seekBy, formatBindKey(bind.key))
     else
-        return ("Forward %ds (%s)"):format(seekBy, formatBindKey(bind.key))
+        return ("Forward %ds %s"):format(seekBy, formatBindKey(bind.key))
     end
 end
 function formatSeekBinds(binds)
@@ -432,7 +438,7 @@ local speedResetBinds = grepBindByCmd("^set(%s+)speed(%s+)1", {})
 local speedDnBinds, speedUpBinds = grepSpeedBinds()
 local fullscreenBinds = grepBindByCmd("^cycle(%s+)fullscreen", {"MBTN_LEFT_DBL"})
 ---- Generate tooltips
-local pauseTooltip = ("Play (%s)"):format(formatBinds(pauseBinds))
+local pauseTooltip = ("Play %s"):format(formatBinds(pauseBinds))
 local seekBackTooltip = formatSeekBinds(seekBackBinds)
 local seekFrwdTooltip = formatSeekBinds(seekFrwdBinds)
 local muteTooltip = formatBinds(muteBinds)
@@ -440,27 +446,27 @@ local volDnTooltip = formatBinds(volDnBinds)
 local volUpTooltip = formatBinds(volUpBinds)
 local volTooltip = {
     -- ("Volume Down (%s) Up (%s)"):format(volDnTooltip, volUpTooltip),
-    ("Volume Down (%s)"):format(volDnTooltip),
-    ("Volume Up (%s)"):format(volUpTooltip),
-    ("Mute (%s)"):format(muteTooltip)
+    ("Volume Down %s"):format(volDnTooltip),
+    ("Volume Up %s"):format(volUpTooltip),
+    ("Mute %s"):format(muteTooltip)
 }
-local plPrevTooltip = ("Previous (%s)"):format(formatBinds(plPrevBinds))
-local plNextTooltip = ("Next (%s)"):format(formatBinds(plNextBinds))
-local chPrevTooltip = ("Prev Chapter (%s)"):format(formatBinds(chPrevBinds))
-local chNextTooltip = ("Next Chapter (%s)"):format(formatBinds(chNextBinds))
-local audioTooltip = ("Audio Track (%s)"):format(formatBinds(audioBinds))
-local subTooltip = ("Subtitle Track (%s)"):format(formatBinds(subBinds))
+local plPrevTooltip = ("Previous %s"):format(formatBinds(plPrevBinds))
+local plNextTooltip = ("Next %s"):format(formatBinds(plNextBinds))
+local chPrevTooltip = ("Prev Chapter %s"):format(formatBinds(chPrevBinds))
+local chNextTooltip = ("Next Chapter %s"):format(formatBinds(chNextBinds))
+local audioTooltip = ("Audio Track %s"):format(formatBinds(audioBinds))
+local subTooltip = ("Subtitle Track %s"):format(formatBinds(subBinds))
 local speedResetTooltip = formatBinds(speedResetBinds)
 local speedDnTooltip = formatBinds(speedDnBinds)
 local speedUpTooltip = formatBinds(speedUpBinds)
 local speedTooltip = {
     -- ("Volume Down (%s) Up (%s)"):format(volDnTooltip, volUpTooltip),
-    ("Slower (%s)"):format(speedDnTooltip),
-    ("Faster (%s)"):format(speedUpTooltip),
-    ("Reset (%s)"):format(speedResetTooltip)
+    ("Slower %s"):format(speedDnTooltip),
+    ("Faster %s"):format(speedUpTooltip),
+    ("Reset %s"):format(speedResetTooltip)
 }
 local pipTooltip = "Picture In Picture"
-local fullscreenTooltip = ("Fullscreen (%s)"):format(formatBinds(fullscreenBinds))
+local fullscreenTooltip = ("Fullscreen %s"):format(formatBinds(fullscreenBinds))
 -- print("pauseTooltip", pauseTooltip)
 -- print("seekBackTooltip", utils.format_json(seekBackTooltip))
 -- print("seekFrwdTooltip", utils.format_json(seekFrwdTooltip))
@@ -2694,7 +2700,6 @@ function render_elements(master_ass)
             if buttonHovered and (not (button_lo.tooltip == nil)) then
                 local tx = button_lo.tooltip_geo.x
                 local ty = button_lo.tooltip_geo.y
-                local tooltipAlpha =  {[1] = 0, [2] = 255, [3] = 88, [4] = 255} -- Opache Text, 65% opacity outlines
                 local labelList = {}
                 if type(button_lo.tooltip) == "function" then
                     labelList = button_lo.tooltip()
@@ -2714,7 +2719,7 @@ function render_elements(master_ass)
                     elem_ass:pos(tx, rowY)
                     elem_ass:an(button_lo.tooltip_an)
                     elem_ass:append(button_lo.tooltip_style)
-                    ass_append_alpha(elem_ass, tooltipAlpha, 0)
+                    ass_append_alpha(elem_ass, tethys.tooltipAlphaTable, 0)
                     elem_ass.scale = 1
                     elem_ass:append(label)
                     elem_ass.scale = 4
