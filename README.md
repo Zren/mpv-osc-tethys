@@ -79,6 +79,8 @@ A complete list of configuration keys can be found at the top of [`osc_tethys.lu
 
 ```ini
 # Config
+showPictureInPictureButton=yes
+showSpeedButton=yes
 skipBy=5 # skipback/skipfrwd amount in seconds
 skipByMore=30 # RightClick skipback/skipfrwd amount in seconds
 skipMode=exact # "exact" (mordenx default) or "relative+keyframes" (mpv default)

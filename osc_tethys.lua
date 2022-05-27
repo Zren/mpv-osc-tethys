@@ -7,6 +7,8 @@ local utils = require 'mp.utils'
 -- Linux: ~/config/mpv/script-opts/tethys.conf
 local tethys = {
     -- Config
+    showPictureInPictureButton = true,
+    showSpeedButton = true,
     skipBy = 5, -- skipback/skipfrwd amount in seconds
     skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
@@ -4284,6 +4286,7 @@ function osc_init()
 
     --tog_pip
     ne = new_element("tog_pip", "button")
+    ne.visible = tethys.showPictureInPictureButton
     ne.content = function ()
         if (tethys.isPictureInPicture) then
             return tethysIcon_pip_exit
@@ -4524,6 +4527,7 @@ function osc_init()
 
     -- speed
     ne = new_element("speed", "button")
+    ne.visible = tethys.showSpeedButton
     ne.content = function()
         return tethysIcon_speed
     end
