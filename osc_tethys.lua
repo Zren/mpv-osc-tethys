@@ -154,6 +154,47 @@ local tethysIcon_vol_100 = "{\\p1}m 0 0   m 28 28   m 4.710272 20.331519   l 1.3
 local tethysIcon_vol_101 = "{\\p1}m 0 0   m 28 28   m 26.774083 5.201582   l 25.69218 18.248063   b 25.66035 18.693555 25.533063 18.916303 25.31033 18.916303   b 25.08759 18.916303 24.960302 18.693563 24.928482 18.248063   l 23.878399 5.201582   l 23.878399 5.074292   b 23.878399 4.660623 24.005689 4.342418 24.292068 4.119669   b 24.578454 3.865105 24.928482 3.737822 25.31033 3.737822   b 25.724 3.737822 26.042205 3.865111 26.328594 4.119669   b 26.614979 4.342409 26.774083 4.660623 26.774083 5.074292   m 26.774083 22.734783   b 26.774083 23.180275 26.614991 23.530301 26.360414 23.816689   b 26.074028 24.134895 25.724 24.262178 25.31033 24.262178   b 24.928482 24.262178 24.578454 24.134888 24.292068 23.816689   b 24.005682 23.530301 23.878399 23.180275 23.878399 22.734783   b 23.878399 22.321115 24.005689 21.971087 24.292068 21.684702   b 24.578454 21.366494 24.928482 21.239213 25.31033 21.239213   b 25.724 21.239213 26.074028 21.366487 26.360414 21.684702   b 26.614979 21.971087 26.774083 22.321115 26.774083 22.734783   m 4.710272 20.331519   l 1.360222 18.656494   b 0.489258 18.221011 0.489258 18.221011 0.489258 17.165758   l 0.489258 14   l 0.489258 10.83424   b 0.489258 9.778988 0.48926 9.778988 1.337532 9.354852   l 4.710272 7.668481   m 5.765524 7.674466   l 9.986538 3.453454   b 10.706239 2.706516 12.097044 1.342947 12.097044 3.453454   l 12.097044 24.558517   b 12.097044 26.669023 10.738402 25.263082 9.986538 24.558517   l 5.765524 20.337504   m 20.116395 7.368459   l 17.915201 9.643849   b 18.793615 10.494225 19.496549 12.085227 19.477484 14.012366   b 19.458484 15.939505 18.683596 17.529199 17.842625 18.356568   l 20.064426 20.611347   b 21.82241 18.8818 22.618007 16.592612 22.643244 14.04122   b 22.668484 11.489827 21.937955 9.131882 20.116395 7.368459   m 16.562393 10.929048   l 14.418911 13.150849   l 14.418911 14.870154   l 16.488207 17.07095   b 17.436586 16.089838 17.82417 15.024196 17.820228 13.983409   b 17.816228 12.942625 17.530838 11.909297 16.562404 10.929049{\\p0}"
 local tethysIcon_vol_mute = "{\\p1}m 0 0   m 28 28   m 4.710272 20.331519   l 1.360222 18.656494   b 0.489258 18.221011 0.489258 18.221011 0.489258 17.165758   l 0.489258 14   l 0.489258 10.83424   b 0.489258 9.778988 0.48926 9.778988 1.337532 9.354852   l 4.710272 7.668481   m 5.765524 7.674466   l 9.986538 3.453454   b 10.706239 2.706516 12.097044 1.342947 12.097044 3.453454   l 12.097044 24.558517   b 12.097044 26.669023 10.738402 25.263082 9.986538 24.558517   l 5.765524 20.337504   m 26.699268 7.480125   b 26.905593 7.480125 27.111919 7.52139 27.276978 7.68645   b 27.607099 8.01657 27.607099 8.51175 27.276978 8.841871   l 22.077583 14.041265   l 27.276978 19.240659   b 27.565833 19.529515 27.565833 19.98343 27.276978 20.31355   b 26.988123 20.602406 26.492943 20.602406 26.204087 20.31355   l 21.004692 15.114157   l 15.805297 20.31355   b 15.516442 20.602406 14.979997 20.602406 14.691142 20.31355   b 14.361021 19.98343 14.361021 19.48825 14.691142 19.158129   l 19.849271 13.958735   l 14.649877 8.759341   b 14.361021 8.470485 14.361021 8.01657 14.649877 7.68645   b 14.979997 7.397594 15.433912 7.397594 15.764033 7.68645   l 20.963428 12.885844   l 26.162823 7.68645   b 26.286617 7.52139 26.492943 7.480125 26.699268 7.480125{\\p0}"
 
+function scaleIcon(iconStr, iconScale)
+    return iconStr:gsub("([%d%.]+)", function(numStr)
+        local num = tonumber(numStr)
+        num = num * iconScale
+        return tostring(num)
+    end)
+end
+local iconScale = tethys.controlsHeight / 64
+if iconScale ~= 1 then
+    tethysIcon_play = scaleIcon(tethysIcon_play, iconScale)
+    tethysIcon_pause = scaleIcon(tethysIcon_pause, iconScale)
+end
+iconScale = tethys.windowButtonSize / 44
+if iconScale ~= 1 then
+    mpvOsdIcon_close = scaleIcon(mpvOsdIcon_close, iconScale)
+    mpvOsdIcon_maximize = scaleIcon(mpvOsdIcon_maximize, iconScale)
+    mpvOsdIcon_minimize = scaleIcon(mpvOsdIcon_minimize, iconScale)
+    mpvOsdIcon_restore = scaleIcon(mpvOsdIcon_restore, iconScale)
+end
+iconScale = tethys.smallButtonSize / 42
+if iconScale ~= 1 then
+    mpvOsdIcon_fs_enter = scaleIcon(mpvOsdIcon_fs_enter, iconScale)
+    mpvOsdIcon_fs_exit = scaleIcon(mpvOsdIcon_fs_exit, iconScale)
+    tethysIcon_ch_prev = scaleIcon(tethysIcon_ch_prev, iconScale)
+    tethysIcon_ch_next = scaleIcon(tethysIcon_ch_next, iconScale)
+    tethysIcon_pip_enter = scaleIcon(tethysIcon_pip_enter, iconScale)
+    tethysIcon_pip_exit = scaleIcon(tethysIcon_pip_exit, iconScale)
+    tethysIcon_pl_prev = scaleIcon(tethysIcon_pl_prev, iconScale)
+    tethysIcon_pl_next = scaleIcon(tethysIcon_pl_next, iconScale)
+    tethysIcon_skipback = scaleIcon(tethysIcon_skipback, iconScale)
+    tethysIcon_skipfrwd = scaleIcon(tethysIcon_skipfrwd, iconScale)
+    tethysIcon_speed = scaleIcon(tethysIcon_speed, iconScale)
+    tethysIcon_vol_033 = scaleIcon(tethysIcon_vol_033, iconScale)
+    tethysIcon_vol_066 = scaleIcon(tethysIcon_vol_066, iconScale)
+    tethysIcon_vol_100 = scaleIcon(tethysIcon_vol_100, iconScale)
+    tethysIcon_vol_101 = scaleIcon(tethysIcon_vol_101, iconScale)
+    tethysIcon_vol_mute = scaleIcon(tethysIcon_vol_mute, iconScale)
+end
+
+
+
 
 
 
