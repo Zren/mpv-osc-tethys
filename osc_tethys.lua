@@ -19,6 +19,8 @@ local tethys = {
     thumbnailSize = 256, -- 16:9 = 256x144
     seekbarHeight = 20,
     controlsHeight = 64,
+    smallButtonSize = 42, -- controlsHeight * 2/3
+    trackButtonSize = 36, -- controlsHeight / 2
     buttonTooltipSize = 20,
     windowBarHeight = 44,
     windowButtonSize = 44,
@@ -58,8 +60,9 @@ read_options(tethys, "tethys")
 tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
 tethys.buttonW = tethys.controlsHeight
 tethys.buttonH = tethys.controlsHeight
-tethys.smallButtonSize = math.floor(tethys.buttonH * 2/3) -- 42
-tethys.trackButtonSize = math.floor(tethys.buttonH / 2) -- 32
+tethys.smallButtonSize = math.min(tethys.controlsHeight, tethys.smallButtonSize)
+tethys.trackButtonSize = math.min(tethys.controlsHeight, tethys.trackButtonSize)
+tethys.windowButtonSize = math.min(tethys.windowBarHeight, tethys.windowButtonSize)
 tethys.windowControlsRect = {
     w = tethys.windowButtonSize * 3,
     h = tethys.windowBarHeight,
