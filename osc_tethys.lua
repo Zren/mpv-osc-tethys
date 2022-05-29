@@ -1238,6 +1238,9 @@ function Thumbnailer:on_thumb_ready(index)
 end
 
 function Thumbnailer:on_thumb_progress(index)
+    if self.state.thumbnails[index] == nil then
+        return
+    end
     self.state.thumbnails[index] = math.max(self.state.thumbnails[index], 0)
 end
 
