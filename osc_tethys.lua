@@ -88,6 +88,8 @@ tethys.windowControlsRect = {
     h = tethys.windowBarHeight,
 }
 
+-- [1] Foreground, [2] Karaoki Foreground, [3] Border, [4] Shadow
+-- https://aegi.vmoe.info/docs/3.0/ASS_Tags/#index22h3
 tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
 tethys.seekbarCacheAlphaTable = {[1] = tethys.seekbarCacheAlpha, [2] = 255, [3] = 255, [4] = 255}
 tethys.tooltipAlphaTable =  {[1] = 0, [2] = 255, [3] = 88, [4] = 255} -- Opache Text, 65% opacity outlines
@@ -109,6 +111,8 @@ function genColorStyle(color)
 end
 
 ---- mpv's stats.lua has some ASS formatting
+-- https://aegi.vmoe.info/docs/3.0/ASS_Tags/
+-- https://github.com/libass/libass/wiki/ASSv5-Override-Tags
 -- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L62
 -- https://github.com/mpv-player/mpv/blob/master/player/lua/stats.lua#L176
 -- "{\\r}{\\an7}{\\fs%d}{\\fn%s}{\\bord%f}{\\3c&H%s&}{\\1c&H%s&}{\\alpha&H%s&}{\\xshad%f}{\\yshad%f}{\\4c&H%s&}"
