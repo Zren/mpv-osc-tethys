@@ -1675,8 +1675,28 @@ seekbarThumb.overlayId = 1
 
 
 
--- Funcs
+-- Render Funcs
+function calcTrackButtonWidth(trackArr)
+    -- "ICON -/0" or "ICON 1/1" or "ICON 1/10"
+    local trackButtonSize = tethys.trackButtonSize
+    local trackIconWidth = trackButtonSize * (32/23.273)
+    local trackDigitWidth = trackButtonSize * 0.4
+    local spaceDigitRatio = 0.4
+    local slashDigitRatio = 0.7
+    -- print("trackButtonSize", trackButtonSize)
+    -- print("trackIconWidth", trackIconWidth)
+    -- print("trackDigitWidth", trackDigitWidth)
+    local numTrackDigits = 1
+    if trackArr ~= nil and #trackArr > 0 then
+        numTrackDigits = math.floor(math.log(#trackArr, 10)) + 1
+    end
+    local trackButtonWidth = math.ceil(trackIconWidth + trackDigitWidth * (spaceDigitRatio + numTrackDigits + slashDigitRatio + numTrackDigits))
+    -- print("numTrackDigits", numTrackDigits)
+    -- print("trackButtonWidth", trackButtonWidth)
+    return trackButtonWidth
+end
 
+-- Thumbnail Funcs
 function canShowThumb(videoPath)
     local isRemote = videoPath:find("://") ~= nil
     ExecutableFinder:check()
@@ -1726,7 +1746,6 @@ function postRenderThumbnails()
     thumbPostRender(seekbarThumb)
 end
 
--- Render Utils
 -- From: Slider.tooltipF(pos)
 function formatTimestamp(percent)
     local duration = mp.get_property_number("duration", nil)
@@ -3899,7 +3918,7 @@ layouts["tethys"] = function()
 
     -- Subtitle track
     local trackButtonSize = tethys.trackButtonSize
-    local trackButtonWidth = trackButtonSize * 2.5
+    local trackButtonWidth = calcTrackButtonWidth(tracks_osc.sub)
     geo = {
         x = rightX - rightSectionWidth - trackButtonWidth/2,
         y = line1Y + buttonH/2,
@@ -3916,6 +3935,7 @@ layouts["tethys"] = function()
     end
 
     -- Audio track
+    trackButtonWidth = calcTrackButtonWidth(tracks_osc.audio)
     geo = {
         x = rightX - rightSectionWidth - trackButtonWidth/2,
         y = line1Y + buttonH/2,
