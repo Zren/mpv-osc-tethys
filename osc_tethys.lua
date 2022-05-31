@@ -56,28 +56,26 @@ local tethys = {
 }
 read_options(tethys, "tethys")
 
-local function col_format(color)
-    if string.find(color,"#") then
-        colorU = string.upper(color)
-        r = string.sub(colorU,2,3)
-        g = string.sub(colorU,4,5)
-        b = string.sub(colorU,6,7)
-        result = b..g..r
+local function parseColor(color)
+    if string.find(color, "#") then
+        local colorU = string.upper(color)
+        local r = string.sub(colorU, 2, 3)
+        local g = string.sub(colorU, 4, 5)
+        local b = string.sub(colorU, 6, 7)
+        return b..g..r
     else
-        result = color
+        return color
     end
-    return result
 end
-
-local function fix_values(values_table)
-    for k,v in pairs (values_table) do
-        if string.find(k,"Color") then
-            values_table[k] = col_format(v)
+local function parseConfig(configTable)
+    for k,v in pairs(configTable) do
+        if string.find(k, "Color") then
+            configTable[k] = parseColor(v)
         end
     end
 end
 
-fix_values(tethys)
+parseConfig(tethys)
 
 tethys.bottomBarHeight = tethys.seekbarHeight + tethys.controlsHeight
 tethys.buttonW = tethys.controlsHeight
