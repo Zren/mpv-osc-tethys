@@ -1239,6 +1239,7 @@ end
 
 function Thumbnailer:on_thumb_progress(index)
     if self.state.thumbnails[index] == nil then
+        msg.warn("self.state.thumbnails[index] == nil", index, "count", #self.state.thumbnails)
         return
     end
     self.state.thumbnails[index] = math.max(self.state.thumbnails[index], 0)
