@@ -88,6 +88,8 @@ tethys.windowControlsRect = {
     h = tethys.windowBarHeight,
 }
 
+tethys.trackTextScale = 105
+
 -- [1] Foreground, [2] Karaoki Foreground, [3] Border, [4] Shadow
 -- https://aegi.vmoe.info/docs/3.0/ASS_Tags/#index22h3
 tethys.windowBarAlphaTable = {[1] = tethys.windowBarAlpha, [2] = 255, [3] = 255, [4] = 255}
@@ -133,6 +135,7 @@ local tethysStyle = {
     buttonHoveredRect = ("{\\rDefault\\blur0\\bord0\\1c&H%s\\1a&H%X&}"):format(tethys.buttonHoveredRectColor, tethys.buttonHoveredRectAlpha),
     smallButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.smallButtonSize, tethys.osdSymbolFont),
     trackButton = ("{\\blur0\\bord0\\1c&H%s\\3c&HFFFFFF\\fs(%d)\\fn(%s)}"):format(tethys.buttonColor, tethys.trackButtonSize, tethys.osdSymbolFont),
+    trackText = ("{\\fscx%s\\fscy%s\\fn(%s)}"):format(tethys.trackTextScale, tethys.trackTextScale, mp.get_property("options/osd-font")),
     windowBar = ("{\\1c&H%s}"):format(tethys.windowBarColor),
     windowButton = ("{\\blur0\\bord(%d)\\1c&H%s\\3c&H000000\\fs(%d)\\fn(%s)}"):format(tethys.windowTitleOutline, tethys.windowButtonColor, tethys.windowButtonSize, tethys.osdSymbolFont),
     closeButtonHovered = genColorStyle(tethys.closeButtonHoveredColor),
@@ -1705,7 +1708,7 @@ function calcTrackButtonWidth(trackArr)
     -- "ICON -/0" or "ICON 1/1" or "ICON 1/10"
     local trackButtonSize = tethys.trackButtonSize
     local trackIconWidth = trackButtonSize * (32/23.273)
-    local trackDigitWidth = trackButtonSize * 0.4
+    local trackDigitWidth = trackButtonSize * (tethys.trackTextScale / 100) * 0.4
     local spaceDigitRatio = 0.4
     local slashDigitRatio = 0.7
     -- print("trackButtonSize", trackButtonSize)
@@ -3949,7 +3952,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = trackButtonWidth,
-        h = trackButtonSize,
+        h = buttonH,
     }
     lo = add_layout("cy_sub")
     lo.geometry = geo
@@ -3966,7 +3969,7 @@ layouts["tethys"] = function()
         y = line1Y + buttonH/2,
         an = 5, -- x,y is center
         w = trackButtonWidth,
-        h = trackButtonSize,
+        h = buttonH,
     }
     lo = add_layout("cy_audio")
     lo.geometry = geo
@@ -4341,7 +4344,7 @@ function osc_init()
         if not (get_track("audio") == 0) then
             aid = get_track("audio")
         end
-        return ("\238\132\134" .. osc_styles.smallButtonsLlabel
+        return ("\238\132\134" .. tethysStyle.trackText
             .. " " .. aid .. "/" .. #tracks_osc.audio)
     end
     ne.eventresponder["mbtn_left_up"] =
@@ -4360,7 +4363,7 @@ function osc_init()
         if not (get_track("sub") == 0) then
             sid = get_track("sub")
         end
-        return ("\238\132\135" .. osc_styles.smallButtonsLlabel
+        return ("\238\132\135" .. tethysStyle.trackText
             .. " " .. sid .. "/" .. #tracks_osc.sub)
     end
     ne.eventresponder["mbtn_left_up"] =
