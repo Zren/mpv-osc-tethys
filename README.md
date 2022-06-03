@@ -125,7 +125,7 @@ chapterTickColor=CCCCCC
 
 #### osc.conf
 
-A complete list of configuration keys inherited from `osc.lua` can [be found in the source code](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) or [it's documentation](https://mpv.io/manual/master/#configurable-options).
+A complete list of configuration keys inherited from `osc.lua` can [be found in the source code](https://github.com/mpv-player/mpv/blob/master/player/lua/osc.lua) or [its documentation](https://mpv.io/manual/master/#configurable-options).
 
 Note that tethys ignores a few options in `osc.conf` that are already covered by `tethys.conf`.
 
@@ -154,7 +154,7 @@ visibility=auto
 
 #### mpv_thumbnail_script.conf
 
-A complete list of configuration keys for mpv_thumbnail_script can [be found in the source code](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [it's documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
+A complete list of configuration keys for mpv_thumbnail_script can [be found in the source code](https://github.com/TheAMM/mpv_thumbnail_script/blob/master/src/options.lua) or [its documentation](https://github.com/TheAMM/mpv_thumbnail_script#configuration).
 
 Note that `thumbnailSize` in `tethys.conf` overrides `thumbnail_width` and `thumbnail_height`. Tethys also forces `mpv_no_sub=yes` and `mpv_no_config=yes` to make thumbnails easier to read.
 
