@@ -105,6 +105,8 @@ tethys.pipWasMaximized = false
 tethys.pipWasOnTop = false
 tethys.pipHadBorders = false
 
+tethys.hideSeekbar = false
+
 
 -- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
 function genColorStyle(color)
@@ -2535,6 +2537,9 @@ function render_elements(master_ass)
         end
     end
 
+    --
+    tethys.hideSeekbar = false
+
     for n=1, #elements do
         local element = elements[n]
 
@@ -2573,7 +2578,7 @@ function render_elements(master_ass)
             elem_ass:merge(element.static_ass)
         end
 
-        if (element.type == "slider") then
+        if (element.type == "slider") and not tethys.hideSeekbar then
 
             local slider_lo = element.layout.slider
             local elem_geo = element.layout.geometry
@@ -2764,6 +2769,9 @@ function render_elements(master_ass)
                 or not (element.eventresponder["mbtn_left_up"] == nil)
             )
             local buttonHovered = mouse_hit(element)
+            if button_lo.hideSeekbar and buttonHovered then
+                tethys.hideSeekbar = true
+            end
             if isButton and buttonHovered and element.enabled then
                 buttontext = button_lo.hover_style .. buttontext
 
@@ -2995,6 +3003,7 @@ function add_layout(name)
                 maxchars = nil,
                 hover_style = tethysStyle.buttonHovered,
                 playlist = nil,
+                hideSeekbar = false,
             }
         elseif (elements[name].type == "slider") then
             -- slider defaults
@@ -3999,6 +4008,7 @@ layouts["tethys"] = function()
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
     lo.button.playlist = 1
+    lo.button.hideSeekbar = true
     setButtonTooltip(lo, function()
         local shortcutLabel = plNextTooltip
         local nextItem = getDeltaPlaylistItem(1)
@@ -4024,6 +4034,7 @@ layouts["tethys"] = function()
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
     lo.button.playlist = -1
+    lo.button.hideSeekbar = true
     setButtonTooltip(lo, function()
         local shortcutLabel = plPrevTooltip
         local nextItem = getDeltaPlaylistItem(-1)
