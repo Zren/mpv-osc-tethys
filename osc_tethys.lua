@@ -2360,6 +2360,7 @@ end
 --
 
 local elements = {}
+local playlistElements = {}
 
 function new_ass_node(elem_ass)
     elem_ass:append("{}") -- hack to troll new_event into inserting a \n
@@ -2868,6 +2869,7 @@ function limited_list(prop, pos)
     local reslist = {}
     for i=begi, endi do
         local item = proplist[i]
+        item.index = i
         item.current = (i == pos) and true or nil
         table.insert(reslist, item)
     end
@@ -2971,6 +2973,7 @@ end
 
 function new_element(name, type)
     elements[name] = {}
+    elements[name].name = name
     elements[name].type = type
 
     -- add default stuff
@@ -4048,6 +4051,41 @@ layouts["tethys"] = function()
         rightSectionWidth = rightSectionWidth + geo.w
     end
 
+    -- Playlist Entries
+    if #playlistElements >= 1 then
+        local plButtonGeo = geo
+        local plEntryWidth = 360
+        local plEntryFontSize = 24
+        local plEntryHeight = plEntryFontSize*2
+        local plBox = {
+            x = osc_geo.x + osc_geo.w - plEntryWidth,
+            y = osc_geo.y - (plEntryHeight * #playlistElements),
+            w = plEntryWidth,
+            h = plEntryHeight * #playlistElements
+        }
+        add_area("pl-entries", plBox.x, plBox.y, plBox.x+plBox.w, plBox.y+plBox.h)
+
+        for i, plEl in ipairs(playlistElements) do
+            geo = {
+                x = plBox.x,
+                y = plBox.y + plEntryHeight * (i-1),
+                an = 7, -- x,y is top-left
+                w = plEntryWidth,
+                h = plEntryHeight,
+            }
+            lo = add_layout(plEl.name)
+            lo.geometry = geo
+            lo.style = ("{\\fs(%d)\\clip(%s, %s, %s, %s)\\q}"):format(
+                plEntryFontSize,
+                geo.x,
+                geo.y,
+                geo.x + geo.w,
+                geo.y + geo.h,
+                1 -- End-of-line wrapping
+            )
+        end
+    end
+
     -- Pad between Playlist and Cache
     if elements["cache"].visible then
         rightSectionWidth = rightSectionWidth + padX
@@ -4202,6 +4240,8 @@ function osc_init()
     osc_param.video_margins = {l = 0, r = 0, t = 0, b = 0}
 
     elements = {}
+    playlistElements = {}
+
 
     -- some often needed stuff
     local pl_count = mp.get_property_number("playlist-count", 0)
@@ -4270,6 +4310,42 @@ function osc_init()
         function () show_message(get_playlist(), 3) end
     ne.eventresponder["mbtn_right_up"] =
         function () show_message(get_playlist(), 3) end
+
+
+    -- playlist
+    if have_pl then
+        local count, limlist = limited_list('playlist', pl_pos)
+        for i, v in ipairs(limlist) do
+            local title = v.title
+            local _, filename = utils.split_path(v.filename)
+            if title == nil then
+                title = filename
+            end
+            -- Center elide text longer than 20 characters
+            local maxChars = 36
+            local lineA = string.sub(title, 1, maxChars)
+            local lineB = string.sub(title, maxChars+1)
+            local elidePattern = "^.+(" .. string.rep(".", maxChars) .. ")$"
+            lineB = string.gsub(lineB, elidePattern, "…%1")
+            local entryLabel = string.format('%s %s\\N%s%s',
+                (v.current and '●' or '○'),
+                lineA,
+                string.char(160, 160, 160, 160), -- 3x NBSP is same width as ○
+                lineB
+            )
+            print("v.index", v.index)
+            print("lineA", lineA)
+            print("lineB", lineB)
+            print("entryLabel", entryLabel)
+            ne = new_element(("pl_entry_%s"):format(i), "button")
+            ne.content = entryLabel
+            ne.eventresponder["mbtn_left_up"] = function ()
+                print("playlist-play-index", v.index-1)
+                mp.commandv("playlist-play-index", v.index-1)
+            end
+            table.insert(playlistElements, ne)
+        end
+    end
 
 
     -- big buttons
@@ -4952,6 +5028,26 @@ function render()
         end
     end
 
+    if osc_param.areas["pl-entries"] then
+        for _,cords in ipairs(osc_param.areas["pl-entries"]) do
+            if state.osc_visible then -- activate only when OSC is actually visible
+                set_virt_mouse_area(cords.x1, cords.y1, cords.x2, cords.y2, "pl-entries")
+            end
+            if state.osc_visible ~= state.input_enabled then
+                if state.osc_visible then
+                    mp.enable_key_bindings("pl-entries")
+                else
+                    mp.disable_key_bindings("pl-entries")
+                end
+                state.input_enabled = state.osc_visible
+            end
+
+            if (mouse_hit_coords(cords.x1, cords.y1, cords.x2, cords.y2)) then
+                mouse_over_osc = true
+            end
+        end
+    end
+
     -- autohide
     if not (state.showtime == nil) and (get_hidetimeout() >= 0) then
         local timeout = state.showtime + (get_hidetimeout()/1000) - now
@@ -5321,6 +5417,12 @@ mp.enable_key_bindings("input")
 mp.set_key_bindings({
     {"mbtn_left",           function(e) process_event("mbtn_left", "up") end,
                             function(e) process_event("mbtn_left", "down")  end},
+}, "pl-entries", "force")
+mp.enable_key_bindings("pl-entries")
+
+mp.set_key_bindings({
+    {"mbtn_left",           function(e) process_event("mbtn_left", "up") end,
+                            function(e) process_event("mbtn_left", "down")  end},
 }, "window-controls", "force")
 mp.enable_key_bindings("window-controls")
 
@@ -5390,4 +5492,5 @@ mp.register_script_message("osc-visibility", visibility_mode)
 mp.add_key_binding(nil, "visibility", function() visibility_mode("cycle") end)
 
 set_virt_mouse_area(0, 0, 0, 0, "input")
+set_virt_mouse_area(0, 0, 0, 0, "pl-entries")
 set_virt_mouse_area(0, 0, 0, 0, "window-controls")
