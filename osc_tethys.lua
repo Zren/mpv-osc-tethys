@@ -1812,6 +1812,9 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     end
 
     local thumb_size = Thumbnailer.state.thumbnail_size
+    if thumb_size == nil then
+        return
+    end
     local thumbGlobalWidth = thumb_size.w
     local thumbGlobalHeight = thumb_size.h
     local thumbWidth =  math.floor(thumbGlobalWidth * scaleX)
