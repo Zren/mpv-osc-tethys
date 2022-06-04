@@ -32,6 +32,10 @@ local tethys = {
     seekbarTimestampOutline = 1,
     chapterTickSize = 6,
     windowTitleOutline = 1,
+    sidebarWidth = 480,
+    playlistEntryTextSize = 32,
+    playlistEntryNumLines = 2,
+    playlistEntryNumChars = 34,
 
     -- Misc
     osdSymbolFont = "mpv-osd-symbols", -- Seems to be hardcoded and unchangeable
@@ -4054,17 +4058,33 @@ layouts["tethys"] = function()
     -- Playlist Entries
     if #playlistElements >= 1 then
         local plButtonGeo = geo
-        local plEntryWidth = 360
-        local plEntryFontSize = 24
-        local plEntryHeight = plEntryFontSize*2
+        local plEntryWidth = tethys.sidebarWidth
+        local plEntryHeight = tethys.playlistEntryTextSize * tethys.playlistEntryNumLines
         local plBox = {
             x = osc_geo.x + osc_geo.w - plEntryWidth,
             y = osc_geo.y - (plEntryHeight * #playlistElements),
+            an = 7, -- x,y is top-left
             w = plEntryWidth,
             h = plEntryHeight * #playlistElements
         }
         add_area("pl-entries", plBox.x, plBox.y, plBox.x+plBox.w, plBox.y+plBox.h)
 
+        -- Playlist Container
+        new_element("plbox", "box")
+        lo = add_layout("plbox")
+        geo = {
+            x = plBox.x - boxBlur,
+            y = plBox.y - boxBlur,
+            an = plBox.an,
+            w = plBox.w + boxBlur*2,
+            h = plBox.h + boxBlur*2,
+        }
+        lo.geometry = geo
+        lo.layer = 10
+        lo.style = ("{\\rDefault\\blur(%d)\\bord0\\1c&H000000\\3c&HFFFFFF}"):format(boxBlur)
+        lo.alpha[1] = 80 --- 0 (opaque) to 255 (fully transparent)
+
+        -- Playlist Entries
         for i, plEl in ipairs(playlistElements) do
             geo = {
                 x = plBox.x,
@@ -4076,7 +4096,7 @@ layouts["tethys"] = function()
             lo = add_layout(plEl.name)
             lo.geometry = geo
             lo.style = ("{\\fs(%d)\\clip(%s, %s, %s, %s)\\q}"):format(
-                plEntryFontSize,
+                tethys.playlistEntryTextSize,
                 geo.x,
                 geo.y,
                 geo.x + geo.w,
@@ -4315,28 +4335,42 @@ function osc_init()
     -- playlist
     if have_pl then
         local count, limlist = limited_list('playlist', pl_pos)
+        local maxChars = tethys.playlistEntryNumChars
+        local numLines = tethys.playlistEntryNumLines
+        local elidePattern = "^.+(" .. string.rep(".", maxChars) .. ")$"
         for i, v in ipairs(limlist) do
             local title = v.title
             local _, filename = utils.split_path(v.filename)
             if title == nil then
                 title = filename
             end
-            -- Center elide text longer than 20 characters
-            local maxChars = 36
-            local lineA = string.sub(title, 1, maxChars)
-            local lineB = string.sub(title, maxChars+1)
-            local elidePattern = "^.+(" .. string.rep(".", maxChars) .. ")$"
-            lineB = string.gsub(lineB, elidePattern, "…%1")
-            local entryLabel = string.format('%s %s\\N%s%s',
-                (v.current and '●' or '○'),
-                lineA,
-                string.char(160, 160, 160, 160), -- 3x NBSP is same width as ○
-                lineB
-            )
-            print("v.index", v.index)
-            print("lineA", lineA)
-            print("lineB", lineB)
-            print("entryLabel", entryLabel)
+
+            -- local entryLabel = string.format('%s %s', (v.current and '●' or '○'), title)
+
+            -- Elide text longer than 20 characters
+            local entryLines = {}
+            local entryLabel = ""
+            for l = 1, numLines do
+                if #title > 0 then
+                    local line
+                    if l == numLines then
+                        -- LeftElide last line so we can read end of filename
+                        -- With 2 lines, we basically MiddleElide
+                        line = string.gsub(title, elidePattern, "…%1")
+                    else
+                        line = string.sub(title, 1, maxChars)
+                    end
+                    local prefix
+                    if l == 1 then
+                        prefix = (v.current and '●' or '○')
+                    else
+                        prefix = string.char(160, 160, 160, 160) -- 3x NBSP is same width as ○
+                    end
+                    entryLabel = entryLabel .. string.format('%s %s\\N', prefix, line)
+                    title = string.sub(title, maxChars+1)
+                end
+            end
+
             ne = new_element(("pl_entry_%s"):format(i), "button")
             ne.content = entryLabel
             ne.eventresponder["mbtn_left_up"] = function ()
