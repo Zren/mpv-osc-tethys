@@ -1711,6 +1711,131 @@ seekbarThumb.overlayId = 1
 
 
 -- Render Funcs
+-- NotoSans-Regular
+local defaultCharMetric = 0.8
+local textMetrics = {
+    A = 693, B = 650, C = 632, D = 730, E = 556, F = 519,
+    G = 728, H = 741, I = 339, J = 273, K = 619, L = 524,
+    M = 907, N = 760, O = 781, P = 605, Q = 781, R = 622,
+    S = 549, T = 556, U = 731, V = 600, W = 930, X = 586,
+    Y = 566, Z = 572,
+    a = 561, b = 615, c = 480, d = 615, e = 564, f = 344,
+    g = 615, h = 618, i = 258, j = 258, k = 534, l = 258,
+    m = 935, n = 618, o = 605, p = 615, q = 615, r = 413,
+    s = 479, t = 361, u = 618, v = 508, w = 768, x = 529,
+    y = 510, z = 470,
+}
+textMetrics['['] = 329
+textMetrics[']'] = 329
+textMetrics['('] = 300
+textMetrics[')'] = 300
+textMetrics['{'] = 380
+textMetrics['}'] = 380
+textMetrics['!'] = 269
+textMetrics['@'] = 899
+textMetrics['#'] = 646
+textMetrics['$'] = 572
+textMetrics['%'] = 831
+textMetrics['^'] = 572
+textMetrics['&'] = 732
+textMetrics['*'] = 551
+textMetrics['+'] = 572
+textMetrics['='] = 572
+textMetrics[';'] = 268
+textMetrics[':'] = 268
+textMetrics[','] = 268
+textMetrics['.'] = 268
+textMetrics['<'] = 572
+textMetrics['>'] = 572
+textMetrics['`'] = 281
+textMetrics['~'] = 572
+textMetrics['1'] = 572
+textMetrics['2'] = 572
+textMetrics['3'] = 572
+textMetrics['4'] = 572
+textMetrics['5'] = 572
+textMetrics['6'] = 572
+textMetrics['7'] = 572
+textMetrics['8'] = 572
+textMetrics['9'] = 572
+textMetrics['0'] = 572
+textMetrics['-'] = 332
+textMetrics['_'] = 444
+textMetrics[' '] = 260
+textMetrics['?'] = 434
+textMetrics['|'] = 551
+textMetrics['/'] = 372
+textMetrics['\\'] = 372
+textMetrics['\''] = 225
+textMetrics['\"'] = 408
+textMetrics['●'] = 1000
+textMetrics['○'] = 1000
+textMetrics[string.char(160)] = 260
+
+for k,v in pairs(textMetrics) do
+    -- print("textMetric", k, v, v/1200)
+    textMetrics[k] = (v) / 1200
+end
+-- textMetrics = {
+--     'A' = 1.00, 'B' = 1.00, 'C' = 1.00, 'D' = 1.00, 'E' = 1.00, 'F' = 1.00,
+--     'G' = 1.00, 'H' = 1.00, 'I' = 1.00, 'J' = 1.00, 'K' = 1.00, 'L' = 1.00,
+--     'M' = 1.00, 'N' = 1.00, 'O' = 1.00, 'P' = 1.00, 'Q' = 1.00, 'R' = 1.00,
+--     'S' = 1.00, 'T' = 1.00, 'U' = 1.00, 'V' = 1.00, 'W' = 1.00, 'X' = 1.00,
+--     'Y' = 1.00, 'Z' = 1.00,
+--     'a' = 1.00, 'b' = 1.00, 'c' = 1.00, 'd' = 1.00, 'e' = 1.00, 'f' = 1.00,
+--     'g' = 1.00, 'h' = 1.00, 'i' = 1.00, 'j' = 1.00, 'k' = 1.00, 'l' = 1.00,
+--     'm' = 1.00, 'n' = 1.00, 'o' = 1.00, 'p' = 1.00, 'q' = 1.00, 'r' = 1.00,
+--     's' = 1.00, 't' = 1.00, 'u' = 1.00, 'v' = 1.00, 'w' = 1.00, 'x' = 1.00,
+--     'y' = 1.00, 'z' = 1.00,
+--     '[' = 1.00, ']' = 1.00, '(' = 1.00, ')' = 1.00, '{' = 1.00, '}' = 1.00,
+--     '!' = 1.00, '@' = 1.00, '#' = 1.00, '$' = 1.00, '%' = 1.00, '^' = 1.00,
+--     '&' = 1.00, '*' = 1.00, '+' = 1.00, '=' = 1.00, ';' = 1.00, ':' = 1.00,
+--     ',' = 1.00, '.' = 1.00, '<' = 1.00, '>' = 1.00, '`' = 1.00, '~' = 1.00,
+--     '.' = 1.00, '-' = 1.00, '_' = 1.00, ' ' = 1.00, '?' = 1.00,
+--     '/' = 1.00, '\\' = 1.00, '\'' = 1.00, '\"' = 1.00,
+--     '1' = 1.00, '2' = 1.00, '3' = 1.00, '4' = 1.00, '5' = 1.00, '6' = 1.00,
+--     '7' = 1.00, '8' = 1.00, '9' = 1.00, '0' = 1.00,
+-- }
+function calcCharWidthRatio(c)
+    if textMetrics[c] ~= nil then
+        return textMetrics[c]
+    end
+    return defaultCharMetric
+end
+-- function calcTextWidthRatio(str)
+--     local r = 0
+--     for i = 1, #str do
+--         r += calcCharWidthRatio(str[i])
+--     end
+--     return r
+-- end
+function wrapText(str, fontSize, parentWidth)
+    print("str", str)
+    print("fontSize", fontSize)
+    print("parentWidth", parentWidth)
+    local out = ""
+    local lineStart = 1
+    local lineWidth = 0
+    for i = 1, #str do
+        -- local char = str[i]
+        local char = string.sub(str, i, i)
+        local charWidth = fontSize * calcCharWidthRatio(char)
+        if lineWidth + charWidth >= parentWidth then
+            out = out .. string.sub(str, lineStart, i-1) .. "\\N"
+            print("out", out)
+            lineStart = i
+            lineWidth = 0
+        else
+            print("char", char, charWidth, "line", lineWidth)
+            lineWidth = lineWidth + charWidth
+        end
+    end
+    if lineWidth > 0 then
+        out = out .. string.sub(str, lineStart)
+        print("out", out)
+    end
+    return out
+end
 function calcTrackButtonWidth(trackArr)
     -- "ICON -/0" or "ICON 1/1" or "ICON 1/10"
     local trackButtonSize = tethys.trackButtonSize
@@ -4370,6 +4495,40 @@ function osc_init()
                     title = string.sub(title, maxChars+1)
                 end
             end
+
+            -- local plEntryWidth = tethys.sidebarWidth
+            -- local plEntryFontSize = tethys.playlistEntryTextSize
+            -- if numLines >= 1 then
+            --     local lastLine = entryLines[#entryLines]
+            --     if #lastLine >= maxChars then
+            --         print("#lastLine", #lastLine, lastLine)
+            --         entryLines[#entryLines] = string.gsub(lastLine, elidePattern, "…%1")
+            --         print("         ", entryLines[#entryLines])
+            --     end
+            -- end
+            -- for l = 1, #entryLines do
+                
+            --     entryLabel = entryLabel .. string.format('%s %s\\N', prefix, entryLines[l])
+            -- end
+
+            -- local lineA = string.sub(title, 1, maxChars)
+            -- local lineB = string.sub(title, maxChars+1)
+            -- local elidePattern = "^.+(" .. string.rep(".", maxChars) .. ")$"
+            -- lineB = string.gsub(lineB, elidePattern, "…%1")
+            -- local entryLabel = string.format('%s %s\\N%s%s',
+            --     (v.current and '●' or '○'),
+            --     lineA,
+            --     string.char(160, 160, 160, 160), -- 3x NBSP is same width as ○
+            --     lineB
+            -- )
+            -- print("v.index", v.index)
+            -- print("lineA", lineA)
+            -- print("lineB", lineB)
+            -- print("entryLabel", entryLabel)
+
+            -- local entryLabel = wrapText(title, plEntryFontSize, plEntryWidth)
+            -- entryLabel = entryLabel:gsub("\\N", "\\N"..string.char(160, 160, 160, 160))
+            -- entryLabel = (v.current and '●' or '○') .. " " .. entryLabel
 
             ne = new_element(("pl_entry_%s"):format(i), "button")
             ne.content = entryLabel
