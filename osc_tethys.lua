@@ -9,6 +9,7 @@ local tethys = {
     -- Config
     showPictureInPictureButton = true,
     showSpeedButton = true,
+    showChapterTooltip = true, -- Show chapter above timestamp in seekbar tooltip
     skipBy = 5, -- skipback/skipfrwd amount in seconds
     skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
     skipMode = "exact", -- "exact" (mordenx default) or "relative+keyframes" (mpv default)
@@ -1822,9 +1823,10 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
 
     local chapter = get_chapter(thumbTime)
     local hasChapter = not (chapter == nil) and chapter.title and chapter.title ~= ""
+    local showChapter = hasChapter and tethys.showChapterTooltip
     local chapterLabel = ""
     local chapterHeight = 0
-    if hasChapter then
+    if showChapter then
         chapterHeight = tethys.seekbarTimestampSize
         chapterLabel = chapter.title
     end
@@ -1876,7 +1878,7 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     local timestampY = thumbY + thumbHeight + chapterHeight + math.floor(timestampHeight/2)
 
     ---- Chapter
-    if hasChapter then
+    if showChapter then
         ass:new_event()
         ass:pos(chapterX, chapterY)
         ass:an(chapterAn)
