@@ -1711,6 +1711,76 @@ seekbarThumb.overlayId = 1
 
 
 -- Render Funcs
+local playlistElements = {}
+tethys.sidebarHideTimer = nil
+function showPlaylistSidebar()
+    -- local duration = tonumber(mp.get_property("options/osd-duration")) / 1000
+    local duration = 3
+    if not tethys.sidebarHideTimer then
+        tethys.sidebarHideTimer = mp.add_timeout(0, request_init)
+    end
+    tethys.sidebarHideTimer:kill()
+    tethys.sidebarHideTimer.timeout = duration
+    tethys.sidebarHideTimer:resume()
+    -- request_tick()
+    request_init()
+end
+function renderPlaylistSidebar(osc_geo, boxBlur)
+    if not (tethys.sidebarHideTimer and tethys.sidebarHideTimer:is_enabled()) then
+        return
+    end
+    if #playlistElements <= 0 then
+        return
+    end
+
+    local plEntryWidth = tethys.sidebarWidth
+    local plEntryHeight = tethys.playlistEntryTextSize * tethys.playlistEntryNumLines
+    local plBox = {
+        x = osc_geo.x + osc_geo.w - plEntryWidth,
+        y = osc_geo.y - (plEntryHeight * #playlistElements),
+        an = 7, -- x,y is top-left
+        w = plEntryWidth,
+        h = plEntryHeight * #playlistElements
+    }
+    add_area("pl-entries", plBox.x, plBox.y, plBox.x+plBox.w, plBox.y+plBox.h)
+
+    -- Playlist Container
+    new_element("plbox", "box")
+    local lo = add_layout("plbox")
+    local geo = {
+        x = plBox.x - boxBlur,
+        y = plBox.y - boxBlur,
+        an = plBox.an,
+        w = plBox.w + boxBlur*2,
+        h = plBox.h + boxBlur*2,
+    }
+    lo.geometry = geo
+    lo.layer = 10
+    lo.style = ("{\\rDefault\\blur(%d)\\bord0\\1c&H000000\\3c&HFFFFFF}"):format(boxBlur)
+    lo.alpha[1] = 80 --- 0 (opaque) to 255 (fully transparent)
+
+    -- Playlist Entries
+    for i, plEl in ipairs(playlistElements) do
+        geo = {
+            x = plBox.x,
+            y = plBox.y + plEntryHeight * (i-1),
+            an = 7, -- x,y is top-left
+            w = plEntryWidth,
+            h = plEntryHeight,
+        }
+        lo = add_layout(plEl.name)
+        lo.geometry = geo
+        lo.style = ("{\\fs(%d)\\clip(%s, %s, %s, %s)\\q}"):format(
+            tethys.playlistEntryTextSize,
+            geo.x,
+            geo.y,
+            geo.x + geo.w,
+            geo.y + geo.h,
+            1 -- End-of-line wrapping
+        )
+    end
+end
+
 function calcTrackButtonWidth(trackArr)
     -- "ICON -/0" or "ICON 1/1" or "ICON 1/10"
     local trackButtonSize = tethys.trackButtonSize
@@ -2364,7 +2434,6 @@ end
 --
 
 local elements = {}
-local playlistElements = {}
 
 function new_ass_node(elem_ass)
     elem_ass:append("{}") -- hack to troll new_event into inserting a \n
@@ -4056,55 +4125,7 @@ layouts["tethys"] = function()
     end
 
     -- Playlist Entries
-    if #playlistElements >= 1 then
-        local plButtonGeo = geo
-        local plEntryWidth = tethys.sidebarWidth
-        local plEntryHeight = tethys.playlistEntryTextSize * tethys.playlistEntryNumLines
-        local plBox = {
-            x = osc_geo.x + osc_geo.w - plEntryWidth,
-            y = osc_geo.y - (plEntryHeight * #playlistElements),
-            an = 7, -- x,y is top-left
-            w = plEntryWidth,
-            h = plEntryHeight * #playlistElements
-        }
-        add_area("pl-entries", plBox.x, plBox.y, plBox.x+plBox.w, plBox.y+plBox.h)
-
-        -- Playlist Container
-        new_element("plbox", "box")
-        lo = add_layout("plbox")
-        geo = {
-            x = plBox.x - boxBlur,
-            y = plBox.y - boxBlur,
-            an = plBox.an,
-            w = plBox.w + boxBlur*2,
-            h = plBox.h + boxBlur*2,
-        }
-        lo.geometry = geo
-        lo.layer = 10
-        lo.style = ("{\\rDefault\\blur(%d)\\bord0\\1c&H000000\\3c&HFFFFFF}"):format(boxBlur)
-        lo.alpha[1] = 80 --- 0 (opaque) to 255 (fully transparent)
-
-        -- Playlist Entries
-        for i, plEl in ipairs(playlistElements) do
-            geo = {
-                x = plBox.x,
-                y = plBox.y + plEntryHeight * (i-1),
-                an = 7, -- x,y is top-left
-                w = plEntryWidth,
-                h = plEntryHeight,
-            }
-            lo = add_layout(plEl.name)
-            lo.geometry = geo
-            lo.style = ("{\\fs(%d)\\clip(%s, %s, %s, %s)\\q}"):format(
-                tethys.playlistEntryTextSize,
-                geo.x,
-                geo.y,
-                geo.x + geo.w,
-                geo.y + geo.h,
-                1 -- End-of-line wrapping
-            )
-        end
-    end
+    renderPlaylistSidebar(osc_geo, boxBlur)
 
     -- Pad between Playlist and Cache
     if elements["cache"].visible then
@@ -4306,13 +4327,13 @@ function osc_init()
         function ()
             mp.commandv("playlist-prev", "weak")
             if user_opts.playlist_osd then
-                show_message(get_playlist(), 3)
+                showPlaylistSidebar()
             end
         end
     ne.eventresponder["shift+mbtn_left_up"] =
-        function () show_message(get_playlist(), 3) end
+        function () showPlaylistSidebar() end
     ne.eventresponder["mbtn_right_up"] =
-        function () show_message(get_playlist(), 3) end
+        function () showPlaylistSidebar() end
 
     --next
     ne = new_element("pl_next", "button")
@@ -4323,13 +4344,13 @@ function osc_init()
         function ()
             mp.commandv("playlist-next", "weak")
             if user_opts.playlist_osd then
-                show_message(get_playlist(), 3)
+                showPlaylistSidebar()
             end
         end
     ne.eventresponder["shift+mbtn_left_up"] =
-        function () show_message(get_playlist(), 3) end
+        function () showPlaylistSidebar() end
     ne.eventresponder["mbtn_right_up"] =
-        function () show_message(get_playlist(), 3) end
+        function () showPlaylistSidebar() end
 
 
     -- playlist
