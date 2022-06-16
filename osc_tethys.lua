@@ -1356,6 +1356,9 @@ end
 
 function Thumbnailer:get_thumbnail_size()
     local video_dec_params = mp.get_property_native("video-dec-params")
+    if video_dec_params == nil then
+        return nil
+    end
     local video_width = video_dec_params.dw
     local video_height = video_dec_params.dh
     if not (video_width and video_height) then
@@ -1808,6 +1811,9 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ---- Geometry
     local scaleX, scaleY = get_virt_scale_factor()
     local videoDecParams = mp.get_property_native("video-dec-params")
+    if videoDecParams == nil then
+        return
+    end
     local videoWidth = videoDecParams.dw
     local videoHeight = videoDecParams.dh
     if not (videoWidth and videoHeight) then
@@ -2220,9 +2226,13 @@ function togglePictureInPicture()
             mp.commandv('set', 'border', 'yes')
         end
         local videoDecParams = mp.get_property_native("video-dec-params")
-        local videoWidth = videoDecParams.dw
-        local videoHeight = videoDecParams.dh
-        mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
+        if videoDecParams ~= nil then
+            local videoWidth = videoDecParams.dw
+            local videoHeight = videoDecParams.dh
+            if videoWidth and videoHeight then
+                mp.commandv('set', 'geometry', ''..videoWidth..'x'..videoHeight)
+            end
+        end
         if tethys.pipWasMaximized then
             mp.commandv('set', 'window-maximized', 'yes')
         end
