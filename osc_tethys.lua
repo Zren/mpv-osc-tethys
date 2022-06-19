@@ -529,7 +529,7 @@ local speedResetTooltip = formatBinds(speedResetBinds)
 local speedDnTooltip = formatBinds(speedDnBinds)
 local speedUpTooltip = formatBinds(speedUpBinds)
 local speedTooltip = {
-    -- ("Volume Down (%s) Up (%s)"):format(volDnTooltip, volUpTooltip),
+    -- ("Slower (%s) Faster (%s)"):format(speedDnTooltip, speedUpTooltip),
     ("Slower %s"):format(speedDnTooltip),
     ("Faster %s"):format(speedUpTooltip),
     ("Reset %s"):format(speedResetTooltip)
