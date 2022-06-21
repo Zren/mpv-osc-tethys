@@ -78,18 +78,25 @@ A complete list of configuration keys can be found at the top of [`osc_tethys.lu
 * Linux: `~/.config/mpv/script-opts/tethys.conf`
 
 ```ini
-# Config
+### Config
 showPictureInPictureButton=yes
 showSpeedButton=yes
-showChapterTooltip=yes # Show chapter above timestamp in seekbar tooltip
-skipBy=5 # skipback/skipfrwd amount in seconds
-skipByMore=30 # RightClick skipback/skipfrwd amount in seconds
-skipMode=exact # "exact" (mordenx default) or "relative+keyframes" (mpv default)
-pipGeometry=33%+-10+-10 # PictureInPicture 33% screen width, 10px from bottom right
-pipAllWorkspaces=yes # PictureInPicture will show video on all virtual desktops
+# Show chapter above timestamp in seekbar tooltip
+showChapterTooltip=yes
+# skipback/skipfrwd amount in seconds
+skipBy=5
+# RightClick skipback/skipfrwd amount in seconds
+skipByMore=30
+# "exact" (mordenx default) or "relative+keyframes" (mpv default)
+skipMode=exact
+# PictureInPicture 33% screen width, 10px from bottom right
+pipGeometry=33%+-10+-10
+# PictureInPicture will show video on all virtual desktops
+pipAllWorkspaces=yes
 
-# Sizes
-thumbnailSize=256 # 16:9 = 256x144
+### Sizes
+# 16:9 video thumbnail = 256x144
+thumbnailSize=256
 seekbarHeight=20
 controlsHeight=64
 buttonTooltipSize=20
@@ -103,20 +110,22 @@ seekbarTimestampOutline=1
 chapterTickSize=6
 windowTitleOutline=1
 
-# Colors (uses GGBBRR for some reason)
-# Alpha ranges 0 (opaque) .. 255 (transparent)
+### Colors (uses GGBBRR for some reason)
+### Alpha ranges 0 (opaque) .. 255 (transparent)
 textColor=FFFFFF
 buttonColor=CCCCCC
 buttonHoveredColor=FFFFFF
 buttonHoveredRectColor=000000
-buttonHoveredRectAlpha=255 # Easily debug button geometry by setting to 80
+# Easily debug button geometry by setting buttonHoveredRectAlpha to 80
+buttonHoveredRectAlpha=255
 tooltipColor=CCCCCC
 windowBarColor=000000
-windowBarAlpha=255 # (80 is mpv default) (255 morden default)
+# windowBarAlpha (80 is mpv default) (255 morden default)
+windowBarAlpha=255
 windowButtonColor=CCCCCC
-closeButtonHoveredColor=1111DD # #DD1111
+closeButtonHoveredColor=1111DD
 seekbarHandleColor=FFFFFF
-seekbarFgColor=483DD7 # #d73d48
+seekbarFgColor=483DD7
 seekbarBgColor=929292
 seekbarCacheColor=000000
 seekbarCacheAlpha=128
@@ -134,8 +143,10 @@ Note that tethys ignores a few options in `osc.conf` that are already covered by
 
 ```ini
 # Timestamp
-timetotal=no # Display total time instead of remaining time
-timems=no # Display timecodes with milliseconds
+# Display total time instead of remaining time
+timetotal=no
+# Display timecodes with milliseconds
+timems=no
 
 # Whether to display the chapters/playlist at the OSD when left-clicking the next/previous OSC buttons, respectively.
 playlist_osd=yes
