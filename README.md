@@ -161,6 +161,9 @@ minmousemove=0
 # auto=hide/show on mouse move
 # Also supports never and always
 visibility=auto
+
+# Use a Unicode minus sign instead of an ASCII hyphen when displaying the remaining playback time.
+unicodeminus=no
 ```
 
 #### mpv_thumbnail_script.conf
