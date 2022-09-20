@@ -513,12 +513,7 @@ local seekFrwdTooltip = formatSeekBinds(seekFrwdBinds)
 local muteTooltip = formatBinds(muteBinds)
 local volDnTooltip = formatBinds(volDnBinds)
 local volUpTooltip = formatBinds(volUpBinds)
-local volTooltip = {
-    -- ("Volume Down (%s) Up (%s)"):format(volDnTooltip, volUpTooltip),
-    ("Volume Down %s"):format(volDnTooltip),
-    ("Volume Up %s"):format(volUpTooltip),
-    ("Mute %s"):format(muteTooltip)
-}
+local volTooltip = ("Mute %s\\NVolume Up %s\\NVolume Down %s"):format(muteTooltip, volUpTooltip, volDnTooltip)
 local plPrevTooltip = ("Previous %s"):format(formatBinds(plPrevBinds))
 local plNextTooltip = ("Next %s"):format(formatBinds(plNextBinds))
 local chPrevTooltip = ("Prev Chapter %s"):format(formatBinds(chPrevBinds))
@@ -528,12 +523,7 @@ local subTooltip = ("Subtitle Track %s"):format(formatBinds(subBinds))
 local speedResetTooltip = formatBinds(speedResetBinds)
 local speedDnTooltip = formatBinds(speedDnBinds)
 local speedUpTooltip = formatBinds(speedUpBinds)
-local speedTooltip = {
-    -- ("Slower (%s) Faster (%s)"):format(speedDnTooltip, speedUpTooltip),
-    ("Slower %s"):format(speedDnTooltip),
-    ("Faster %s"):format(speedUpTooltip),
-    ("Reset %s"):format(speedResetTooltip)
-}
+local speedTooltip = ("Reset %s\\NFaster %s\\NSlower %s"):format(speedResetTooltip, speedUpTooltip, speedDnTooltip)
 local pipTooltip = "Picture In Picture"
 local fullscreenTooltip = ("Fullscreen %s"):format(formatBinds(fullscreenBinds))
 -- print("pauseTooltip", pauseTooltip)
