@@ -3172,7 +3172,8 @@ function window_controls(topbar)
         w = titlebox_w,
         h = wc_geo.h,
     }
-    lo.style = string.format("%s{\\clip(%f,%f,%f,%f)}",
+    -- Note: \q(2) = No Wrap
+    lo.style = string.format("%s{\\clip(%f,%f,%f,%f)\\q(2)}",
         tethysStyle.windowTitle,
         lo.geometry.x - tethys.windowTitleOutline,
         wc_geo.y - wc_geo.h - tethys.windowTitleOutline,
