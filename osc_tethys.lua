@@ -61,9 +61,9 @@ read_options(tethys, "tethys")
 local thumbfast = {
     width = 0,
     height = 0,
-    disabled = false
+    disabled = true,
+    available = false
 }
-local thumbfast_available = false
 
 local function parseColor(color)
     if string.find(color, "#") then
@@ -1520,7 +1520,7 @@ function Thumbnailer:register_client()
     -- Notify workers to generate thumbnails when video loads/changes
     -- This will be executed after the on_video_change (because it's registered after it)
     mp.observe_property("video-dec-params", "native", function()
-        if thumbfast_available then return end
+        if thumbfast.available then return end
 
         local duration = mp.get_property_native("duration")
         local max_duration = thumbnailer_options.autogenerate_max_duration
@@ -1535,7 +1535,7 @@ function Thumbnailer:register_client()
 
     local thumb_script_key = not thumbnailer_options.disable_keybinds and "T" or nil
     mp.add_key_binding(thumb_script_key, "generate-thumbnails", function()
-        if thumbfast_available then return end
+        if thumbfast.available then return end
 
         if self.state.available then
             mp.osd_message("Started thumbnailer jobs")
@@ -1856,8 +1856,8 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     if thumb_size == nil then
         return
     end
-    local thumbGlobalWidth = thumbfast_available and thumbfast.width or thumb_size.w
-    local thumbGlobalHeight = thumbfast_available and thumbfast.height or thumb_size.h
+    local thumbGlobalWidth = thumbfast.available and thumbfast.width or thumb_size.w
+    local thumbGlobalHeight = thumbfast.available and thumbfast.height or thumb_size.h
     local thumbWidth =  math.floor(thumbGlobalWidth * scaleX)
     local thumbHeight =  math.floor(thumbGlobalHeight * scaleY)
 
@@ -1934,11 +1934,11 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ass:append(timestampLabel)
 
     -- If thumbnails are not available, bail
-    if not thumbfast_available and not (Thumbnailer.state.enabled and Thumbnailer.state.available) then
+    if not thumbfast.available and not (Thumbnailer.state.enabled and Thumbnailer.state.available) then
         return
     end
 
-    if thumbPath or thumbfast_available then
+    if thumbPath or thumbfast.available then
         ---- Thumb BG/Outline
         ass:new_event()
         ass:pos(tooltipX, tooltipY)
@@ -1960,8 +1960,8 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
         end
     end
 
-    if thumbfast_available then
-        if not thumbfast.disabled and thumbfast.width ~= 0 and thumbfast.height ~= 0 then
+    if thumbfast.available then
+        if not thumbfast.disabled then
             mp.commandv("script-message-to", "thumbfast", "thumb",
                 thumbTime,
                 math.floor(thumbGlobalX + 0.5),
@@ -2787,7 +2787,7 @@ function render_elements(master_ass)
                     }
                     renderThumbnailTooltip(thumbPos, sliderPos, elem_ass)
                 else
-                    if thumbfast.width ~= 0 and thumbfast.height ~= 0 then
+                    if thumbfast.available then
                         mp.commandv("script-message-to", "thumbfast", "clear")
                     end
                 end
@@ -5534,7 +5534,6 @@ mp.register_script_message("thumbfast-info", function(json)
         msg.error("thumbfast-info: received json didn't produce a table with thumbnail information")
     else
         thumbfast = data
-        thumbfast_available = true
     end
 end)
 
