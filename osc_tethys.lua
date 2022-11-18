@@ -9,6 +9,7 @@ local tethys = {
     -- Config
     showPictureInPictureButton = true,
     showSpeedButton = true,
+    showShortcutTooltip = true, -- Show name and shortcut of buttons on hover
     showChapterTooltip = true, -- Show chapter above timestamp in seekbar tooltip
     skipBy = 5, -- skipback/skipfrwd amount in seconds
     skipByMore = 30, -- RightClick skipback/skipfrwd amount in seconds
@@ -3812,7 +3813,9 @@ layouts["tethys"] = function()
     lo = add_layout("playpause")
     lo.geometry = geo
     lo.style = tethysStyle.button
-    setButtonTooltip(lo, pauseTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, pauseTooltip)
+    end
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Skip Backwards
@@ -3826,7 +3829,9 @@ layouts["tethys"] = function()
     lo = add_layout("skipback")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, seekBackTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, seekBackTooltip)
+    end
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Skip Forwards
@@ -3840,7 +3845,9 @@ layouts["tethys"] = function()
     lo = add_layout("skipfrwd")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, seekFrwdTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, seekFrwdTooltip)
+    end
     leftSectionWidth = leftSectionWidth + geo.w
 
     -- Chapter Prev
@@ -3857,10 +3864,18 @@ layouts["tethys"] = function()
     setButtonTooltip(lo, function()
         local shortcutLabel = chPrevTooltip
         local prevChapter = getDeltaChapter(-1)
-        if prevChapter == nil then
-            return { shortcutLabel }
+        if tethys.showShortcutTooltip then
+            if prevChapter == nil then
+                return { shortcutLabel }
+            else
+                return { tethysStyle.text..prevChapter.label, shortcutLabel }
+            end
         else
-            return { tethysStyle.text..prevChapter.label, shortcutLabel }
+            if prevChapter == nil then
+                return {}
+            else
+                return { tethysStyle.text..prevChapter.label }
+            end
         end
     end)
     if elements["ch_prev"].visible then
@@ -3881,10 +3896,18 @@ layouts["tethys"] = function()
     setButtonTooltip(lo, function()
         local shortcutLabel = chNextTooltip
         local nextChapter = getDeltaChapter(1)
-        if nextChapter == nil then
-            return { shortcutLabel }
+        if tethys.showShortcutTooltip then
+            if nextChapter == nil then
+                return { shortcutLabel }
+            else
+                return { tethysStyle.text..nextChapter.label, shortcutLabel }
+            end
         else
-            return { tethysStyle.text..nextChapter.label, shortcutLabel }
+            if nextChapter == nil then
+                return {}
+            else
+                return { tethysStyle.text..nextChapter.label }
+            end
         end
     end)
     if elements["ch_next"].visible then
@@ -3905,7 +3928,9 @@ layouts["tethys"] = function()
     lo = add_layout("volume")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, volTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, volTooltip)
+    end
     if elements["volume"].visible then
         leftSectionWidth = leftSectionWidth + geo.w
     end
@@ -3922,7 +3947,9 @@ layouts["tethys"] = function()
     lo = add_layout("tog_fs")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, fullscreenTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, fullscreenTooltip)
+    end
     if elements["tog_fs"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3938,7 +3965,9 @@ layouts["tethys"] = function()
     lo = add_layout("tog_pip")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, pipTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, pipTooltip)
+    end
     if elements["tog_pip"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3954,7 +3983,9 @@ layouts["tethys"] = function()
     lo = add_layout("speed")
     lo.geometry = geo
     lo.style = tethysStyle.smallButton
-    setButtonTooltip(lo, speedTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, speedTooltip)
+    end
     if elements["speed"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3972,7 +4003,9 @@ layouts["tethys"] = function()
     lo = add_layout("cy_sub")
     lo.geometry = geo
     lo.style = tethysStyle.trackButton
-    setButtonTooltip(lo, subTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, subTooltip)
+    end
     if elements["cy_sub"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -3989,7 +4022,9 @@ layouts["tethys"] = function()
     lo = add_layout("cy_audio")
     lo.geometry = geo
     lo.style = tethysStyle.trackButton
-    setButtonTooltip(lo, audioTooltip)
+    if tethys.showShortcutTooltip then
+        setButtonTooltip(lo, audioTooltip)
+    end
     if elements["cy_audio"].visible then
         rightSectionWidth = rightSectionWidth + geo.w
     end
@@ -4012,10 +4047,18 @@ layouts["tethys"] = function()
     setButtonTooltip(lo, function()
         local shortcutLabel = plNextTooltip
         local nextItem = getDeltaPlaylistItem(1)
-        if nextItem == nil then
-            return { shortcutLabel }
+        if tethys.showShortcutTooltip then
+            if nextItem == nil then
+                return { shortcutLabel }
+            else
+                return { tethysStyle.text..nextItem.label, shortcutLabel }
+            end
         else
-            return { tethysStyle.text..nextItem.label, shortcutLabel }
+            if nextItem == nil then
+                return {}
+            else
+                return { tethysStyle.text..nextItem.label }
+            end
         end
     end)
     if elements["pl_next"].visible then
@@ -4037,10 +4080,18 @@ layouts["tethys"] = function()
     setButtonTooltip(lo, function()
         local shortcutLabel = plPrevTooltip
         local nextItem = getDeltaPlaylistItem(-1)
-        if nextItem == nil then
-            return { shortcutLabel }
+        if tethys.showShortcutTooltip then
+            if nextItem == nil then
+                return { shortcutLabel }
+            else
+                return { tethysStyle.text..nextItem.label, shortcutLabel }
+            end
         else
-            return { tethysStyle.text..nextItem.label, shortcutLabel }
+            if nextItem == nil then
+                return {}
+            else
+                return { tethysStyle.text..nextItem.label }
+            end
         end
     end)
     if elements["pl_prev"].visible then

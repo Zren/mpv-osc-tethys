@@ -81,6 +81,8 @@ A complete list of configuration keys can be found at the top of [`osc_tethys.lu
 ### Config
 showPictureInPictureButton=yes
 showSpeedButton=yes
+# Show name and shortcut of buttons on hover
+showShortcutTooltip=yes
 # Show chapter above timestamp in seekbar tooltip
 showChapterTooltip=yes
 # skipback/skipfrwd amount in seconds
