@@ -393,17 +393,19 @@ end)
 --     print(jsonstr)
 -- end
 
+function isIgnored(bind, ignoredKeys)
+    for _, ignoredKey in pairs(ignoredKeys) do
+        if bind.key == ignoredKey then
+            return true
+        end
+    end
+    return false
+end
 function grepBindByCmd(pattern, ignoredKeys)
     ignoredKeys = ignoredKeys or {}
     local cmdBinds = {}
     for _, bind in pairs(ordered) do
-        local ignored = false
-        for _, ignoredKey in pairs(ignoredKeys) do
-            if bind.key == ignoredKey then
-                ignored = true
-                break
-            end
-        end
+        local ignored = isIgnored(bind, ignoredKeys)
         if not ignored and bind.cmd:find(pattern) then
             -- print(bind.key, bind.cmd)
             cmdBinds[#cmdBinds+1] = bind
@@ -412,11 +414,33 @@ function grepBindByCmd(pattern, ignoredKeys)
     return cmdBinds
 end
 
-function grepSpeedBinds()
+function grepSeekBinds(ignoredKeys)
+    ignoredKeys = ignoredKeys or {}
+    local backBinds = {}
+    local frwdBinds = {}
+    for _, bind in pairs(ordered) do
+        if isIgnored(bind, ignoredKeys) then
+            -- skip
+        elseif bind.cmd:find("^seek(%s+)(%-[%d%.]+)") then
+            backBinds[#backBinds+1] = bind
+        elseif bind.cmd:find("^no%-osd(%s+)seek(%s+)(%-[%d%.]+)") then
+            backBinds[#backBinds+1] = bind
+        elseif bind.cmd:find("^seek(%s+)(%+?[%d%.]+)") then
+            frwdBinds[#frwdBinds+1] = bind
+        elseif bind.cmd:find("^no%-osd(%s+)seek(%s+)(%+?[%d%.]+)") then
+            frwdBinds[#frwdBinds+1] = bind
+        end
+    end
+    return backBinds, frwdBinds
+end
+function grepSpeedBinds(ignoredKeys)
+    ignoredKeys = ignoredKeys or {}
     local downBinds = {}
     local upBinds = {}
     for _, bind in pairs(ordered) do
-        if bind.cmd:find("^add(%s+)speed(%s+)(%+?[%d%.]+)$") then
+        if isIgnored(bind, ignoredKeys) then
+            -- skip
+        elseif bind.cmd:find("^add(%s+)speed(%s+)(%+?[%d%.]+)$") then
             upBinds[#upBinds+1] = bind
         elseif bind.cmd:find("^add(%s+)speed(%s+)(%-[%d%.]+)$") then
             downBinds[#downBinds+1] = bind
@@ -470,9 +494,14 @@ function formatBinds(binds)
     return str
 end
 function formatSeekBind(bind)
-    local seekBy = bind.cmd:match("^seek%s+([%+%-]?[%d%.]+)")
+    local seekBy
+    if bind.cmd:match("^no%-osd%s+seek") then
+        seekBy = bind.cmd:match("^no%-osd%s+seek%s+([%+%-]?[%d%.]+)")
+    else
+        seekBy = bind.cmd:match("^seek%s+([%+%-]?[%d%.]+)")
+    end
     seekBy = tonumber(seekBy) -- Note: +0.1 is parsed okay
-    local label 
+    local label
     if seekBy < 0 then
         return ("Back %ss %s"):format(-seekBy, formatBindKey(bind.key))
     else
@@ -495,8 +524,7 @@ end
 -- %d+ = One or more digits from 0 to 9
 -- (%-?%d+) = Positive or negative integer
 local pauseBinds = grepBindByCmd("^cycle(%s+)pause", {"p", "PLAYPAUSE", "MBTN_RIGHT", "PLAY", "PAUSE"})
-local seekBackBinds = grepBindByCmd("^seek(%s+)(%-[%d%.]+)", {"REWIND", "Shift+PGDWN"})
-local seekFrwdBinds = grepBindByCmd("^seek(%s+)(%+?[%d%.]+)", {"FORWARD", "Shift+PGUP"})
+local seekBackBinds, seekFrwdBinds = grepSeekBinds({"REWIND", "Shift+PGDWN", "FORWARD", "Shift+PGUP"})
 local muteBinds = grepBindByCmd("^cycle(%s+)mute", {"MUTE"})
 local volDnBinds = grepBindByCmd("^add(%s+)volume(%s+)(%-%d+)", {"VOLUME_DOWN", "WHEEL_LEFT"})
 local volUpBinds = grepBindByCmd("^add(%s+)volume(%s+)(%d+)", {"VOLUME_UP", "WHEEL_RIGHT"})
