@@ -4,7 +4,7 @@ This theme replaces [the built in `osc.lua`](https://github.com/mpv-player/mpv/b
 
 ![](https://i.imgur.com/cYqWlw5.png)
 
-Local files can show thumbnail previews (using a patched version of [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
+Local files can show thumbnail previews (using [thumbfast](https://github.com/po5/thumbfast) or a patched version of [mpv_thumbnail_script](https://github.com/TheAMM/mpv_thumbnail_script)).
 
 ![](https://i.imgur.com/FegXl3W.png)
 
