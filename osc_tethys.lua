@@ -106,6 +106,16 @@ tethys.pipWasMaximized = false
 tethys.pipWasOnTop = false
 tethys.pipHadBorders = false
 
+tethys.userdataAvail = (function()
+    local list = mp.get_property_native("property-list")
+    for k,v in ipairs(list) do
+        if (v == "user-data") then
+            return true
+        end
+    end
+    return false
+end)()
+
 
 -- https://github.com/libass/libass/wiki/ASSv5-Override-Tags#color-and-alpha---c-o
 function genColorStyle(color)
@@ -2277,7 +2287,11 @@ function togglePictureInPicture()
         end
     end
     tethys.isPictureInPicture = not isPiP
-    utils.shared_script_property_set("pictureinpicture", tostring(tethys.isPictureInPicture))
+    if tethys.userdataAvail then
+        mp.set_property_native("user-data/pictureinpicture", tostring(tethys.isPictureInPicture))
+    else
+        utils.shared_script_property_set("pictureinpicture", tostring(tethys.isPictureInPicture))
+    end
 end
 
 
@@ -4793,13 +4807,23 @@ function update_margins()
         reset_margins()
     end
 
-    utils.shared_script_property_set("osc-margins",
-        string.format("%f,%f,%f,%f", margins.l, margins.r, margins.t, margins.b))
+    if tethys.userdataAvail then
+        mp.set_property_native("user-data/osc/margins", {
+            l = margins.l, r = margins.r, t = margins.t, b = margins.b,
+        })
+    else
+        utils.shared_script_property_set("osc-margins",
+            string.format("%f,%f,%f,%f", margins.l, margins.r, margins.t, margins.b))
+    end
 end
 
 function shutdown()
     reset_margins()
-    utils.shared_script_property_set("osc-margins", nil)
+    if tethys.userdataAvail then
+        mp.set_property_native("user-data/osc/margins", nil)
+    else
+        utils.shared_script_property_set("osc-margins", nil)
+    end
 end
 
 --
@@ -5456,7 +5480,11 @@ function visibility_mode(mode, no_osd)
     end
 
     user_opts.visibility = mode
-    utils.shared_script_property_set("osc-visibility", mode)
+    if tethys.userdataAvail then
+        mp.set_property_native("user-data/osc/visibility", mode)
+    else
+        utils.shared_script_property_set("osc-visibility", mode)
+    end
 
     if not no_osd and tonumber(mp.get_property("osd-level")) >= 1 then
         mp.osd_message("OSC visibility: " .. mode)
@@ -5488,7 +5516,11 @@ function idlescreen_visibility(mode, no_osd)
         user_opts.idlescreen = false
     end
 
-    utils.shared_script_property_set("osc-idlescreen", mode)
+    if tethys.userdataAvail then
+        mp.set_property_native("user-data/osc/idlescreen", mode)
+    else
+        utils.shared_script_property_set("osc-idlescreen", mode)
+    end
 
     if not no_osd and tonumber(mp.get_property("osd-level")) >= 1 then
         mp.osd_message("OSC logo visibility: " .. tostring(mode))
