@@ -58,6 +58,13 @@ local tethys = {
 }
 read_options(tethys, "tethys")
 
+local thumbfast = {
+    width = 0,
+    height = 0,
+    disabled = true,
+    available = false
+}
+
 local function parseColor(color)
     if string.find(color, "#") then
         local colorU = string.upper(color)
@@ -1529,6 +1536,8 @@ function Thumbnailer:register_client()
     -- Notify workers to generate thumbnails when video loads/changes
     -- This will be executed after the on_video_change (because it's registered after it)
     mp.observe_property("video-dec-params", "native", function()
+        if thumbfast.available then return end
+
         local duration = mp.get_property_native("duration")
         local max_duration = thumbnailer_options.autogenerate_max_duration
 
@@ -1542,6 +1551,8 @@ function Thumbnailer:register_client()
 
     local thumb_script_key = not thumbnailer_options.disable_keybinds and "T" or nil
     mp.add_key_binding(thumb_script_key, "generate-thumbnails", function()
+        if thumbfast.available then return end
+
         if self.state.available then
             mp.osd_message("Started thumbnailer jobs")
             self:start_worker_jobs()
@@ -1861,8 +1872,8 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     if thumb_size == nil then
         return
     end
-    local thumbGlobalWidth = thumb_size.w
-    local thumbGlobalHeight = thumb_size.h
+    local thumbGlobalWidth = thumbfast.available and thumbfast.width or thumb_size.w
+    local thumbGlobalHeight = thumbfast.available and thumbfast.height or thumb_size.h
     local thumbWidth =  math.floor(thumbGlobalWidth * scaleX)
     local thumbHeight =  math.floor(thumbGlobalHeight * scaleY)
 
@@ -1939,14 +1950,11 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
     ass:append(timestampLabel)
 
     -- If thumbnails are not available, bail
-    if not (Thumbnailer.state.enabled and Thumbnailer.state.available) then
+    if not thumbfast.available and not (Thumbnailer.state.enabled and Thumbnailer.state.available) then
         return
     end
 
-    local thumbPath, thumbIndex, closestIndex = Thumbnailer:get_thumbnail_path(thumbTime)
-    -- msg.warn("renderThumbnailTooltip", thumbIndex, closestIndex, thumbPath)
-
-    if thumbPath then
+    if thumbPath or thumbfast.available then
         ---- Thumb BG/Outline
         ass:new_event()
         ass:pos(tooltipX, tooltipY)
@@ -1968,7 +1976,23 @@ function renderThumbnailTooltip(pos, sliderPos, ass)
             ass:rect_cw(0, 0, thumbWidth, thumbHeight)
             ass:draw_stop()
         end
+    end
 
+    if thumbfast.available then
+        if not thumbfast.disabled then
+            mp.commandv("script-message-to", "thumbfast", "thumb",
+                thumbTime,
+                math.floor(thumbGlobalX + 0.5),
+                math.floor(thumbGlobalY + 0.5)
+            )
+        end
+        return
+    end
+
+    local thumbPath, thumbIndex, closestIndex = Thumbnailer:get_thumbnail_path(thumbTime)
+    -- msg.warn("renderThumbnailTooltip", thumbIndex, closestIndex, thumbPath)
+
+    if thumbPath then
         ---- Render Thumbnail
         seekbarThumb.thumbPath = thumbPath
         seekbarThumb.globalWidth = thumbGlobalWidth
@@ -2784,7 +2808,10 @@ function render_elements(master_ass)
                         an=2, -- x,y is bottom-center
                     }
                     renderThumbnailTooltip(thumbPos, sliderPos, elem_ass)
-
+                else
+                    if thumbfast.available then
+                        mp.commandv("script-message-to", "thumbfast", "clear")
+                    end
                 end
             end
 
@@ -5540,6 +5567,15 @@ mp.register_script_message("osc-visibility", visibility_mode)
 mp.add_key_binding(nil, "visibility", function() visibility_mode("cycle") end)
 
 mp.register_script_message("osc-idlescreen", idlescreen_visibility)
+
+mp.register_script_message("thumbfast-info", function(json)
+    local data = utils.parse_json(json)
+    if type(data) ~= "table" or not data.width or not data.height then
+        msg.error("thumbfast-info: received json didn't produce a table with thumbnail information")
+    else
+        thumbfast = data
+    end
+end)
 
 set_virt_mouse_area(0, 0, 0, 0, "input")
 set_virt_mouse_area(0, 0, 0, 0, "window-controls")
